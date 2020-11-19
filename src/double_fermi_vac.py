@@ -1,7 +1,7 @@
 from sympy.physics.secondquant import (FockStateFermionKet, FockStateFermionBra,
     AnnihilateFermion, CreateFermion, AntiSymmetricTensor, apply_operators, NO,
     wicks, contraction, evaluate_deltas)
-from sympy import (S, Symbol, symbols, Add, Mul, Dummy, sympify, expand,
+from sympy import (S, Symbol, symbols, Add, Mul, KroneckerDelta, Dummy, sympify, expand,
     pretty_print, latex)
 
 class DoubleFermiVaccum():
@@ -173,10 +173,75 @@ def contraction_double_vac(X, Y):
         return contraction(X, Y)
 
 
+def evaluate_deltas_double_vac(expr):
+    """
+    Function evaluating KroneckerDelta symbols in the expression assuming
+    Einstein summation (the sum is over repeated index).
+
+    Substiution are evaluated for double Fermi vaccum case. Therefore indicies
+    in KronecerDelta should have an assumptions:
+    - is_molA=True if this index applies only to part A of the complex,
+    - is_molB=True if this index applies only to part A of the complex.
+
+    """
+    if isinstance(expr, Add):
+        return Add(*[evaluate_deltas_double_vac(arg) for arg in expr.args])
+
+    elif isinstance(expr, Mul):
+        deltas = []
+        indicies = {}
+        for elem in expr.args:
+            for s in elem.free_symbols:
+                if s in indicies:
+                    indicies[s] += 1
+                else:
+                    indicies[s] = 0
+            if isinstance(elem, KroneckerDelta):
+                deltas.append(elem)
+        
+        for d in deltas:
+            # Now we have to check if killable and preferred apply
+            # to the same part of the complex.
+            killable_molA = d.killable_index.assumptions0.get("is_molA")
+            killable_molB = d.killable_index.assumptions0.get("is_molB")
+            preferred_molA = d.preferred_index.assumptions0.get("is_molA")
+            preferred_molB = d.preferred_index.assumptions0.get("is_molB")
+
+            if (killable_molA and preferred_molA) or (killable_molB and preferred_molB):
+
+                if d.killable_index.is_Symbol and indicies[d.killable_index]:
+                    # Method killabel_index returns index containing less information
+                    # regarding fermi level. If both contain the same amount of information
+                    # alphabetical order is used to determine wich is preferred.
+                    expr = expr.subs(d.killable_index, d.preferred_index)
+                    if len(deltas) > 1:
+                        return evaluate_deltas_double_vac(expr)
+                
+                elif (d.preferred_index.is_Symbol and indicies[d.preferred_index]
+                      and d.indices_contain_equal_information):
+                    # Here we have situation where the preferred_index appers somewhere
+                    # else in the expression. We can change 
+                    expr = expr.subs(d.preferred_index, d.killable_index)
+                    if len(deltas) > 1:
+                        return evaluate_deltas_double_vac(expr)
+                
+                else:
+                    pass
+            # Indicies correspond to diffrent parts of the complex! Delta is zero.
+            else:
+                return S.Zero
+
+        return expr
+    # Not Mul nor Add.
+    else:
+        return expr
 
 
-p, q = symbols('p q', cls=Dummy, is_mol_A=True)
-r, s = symbols('r s', cls=Dummy, is_mol_B=True)
+# Some debugs and checks (will be deleted in final version).
+# There is a plan to add some example files instead.
+
+p, q = symbols('p q', is_molA=True, cls=Dummy)
+r, s = symbols('r s', is_molB=True, cls=Dummy)
 
 v = AntiSymmetricTensor('v', (p, r,), (q, s,))
 vA = AntiSymmetricTensor('(v_A)', (r,), (s,))
@@ -189,11 +254,13 @@ expr = NO_double_vac(V)
 print(latex(expr))
 print()
 
+a1, a2 = symbols('a1 a2', is_molA=True, above_fermi=True, cls=Dummy)
+i1, i2 = symbols('i1 i2', is_molA=True, below_fermi=True, cls=Dummy)
 
-#d, e = symbols('d e', above_fermi=True, cls=Dummy)
-#i, j = symbols('i j', below_fermi=True, cls=Dummy) 
+b1, b2 = symbols('b1 b2', is_molB=True, above_fermi=True, cls=Dummy)
+j1, j2 = symbols('j1 j2', is_molB=True, below_fermi=True, cls=Dummy)
 
-#Fd = CreateFermion
-#F = AnnihilateFermion
-
-#print(contraction_double_vac(b(p), b(q)))
+expr = ad(p) * a(q) * KroneckerDelta(p, q)
+expr = evaluate_deltas_double_vac(expr)
+print(latex(expr))
+print()
