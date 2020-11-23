@@ -32,5 +32,15 @@ check if example ```CCSD``` sympy script runs
 python3 examples/coupled_cluster.py
 ```
 
+## install the development package
+```shell
+python3 -m pip install -e . --no-use-pep517
+```
+
+## run the unit tests
+```shell
+python3 -m pytest ./tests/
+```
+
 # product fock-space Wick's theorem
 prepare design and implementation

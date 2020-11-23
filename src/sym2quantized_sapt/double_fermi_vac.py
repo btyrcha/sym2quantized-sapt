@@ -1,13 +1,34 @@
-from sympy.physics.secondquant import (FockStateFermionKet, FockStateFermionBra,
-    AnnihilateFermion, CreateFermion, AntiSymmetricTensor, apply_operators, NO,
-    wicks, contraction, evaluate_deltas)
-from sympy import (S, Symbol, symbols, Add, Mul, KroneckerDelta, Dummy, sympify, expand,
-    pretty_print, latex)
+from sympy.physics.secondquant import (
+    FockStateFermionKet,
+    FockStateFermionBra,
+    AnnihilateFermion,
+    CreateFermion,
+    AntiSymmetricTensor,
+    apply_operators,
+    NO,
+    wicks,
+    contraction,
+    evaluate_deltas,
+)
+from sympy import (
+    S,
+    Symbol,
+    symbols,
+    Add,
+    Mul,
+    KroneckerDelta,
+    Dummy,
+    sympify,
+    expand,
+    pretty_print,
+    latex,
+)
 
-class DoubleFermiVaccum():
 
-    is_molA=False
-    is_molB=False
+class DoubleFermiVaccum:
+
+    is_molA = False
+    is_molB = False
 
 
 class AnnihilateFermion_A(AnnihilateFermion, DoubleFermiVaccum):
@@ -20,13 +41,14 @@ class AnnihilateFermion_A(AnnihilateFermion, DoubleFermiVaccum):
     /dimer.
 
     """
+
     is_molA = True
 
-    op_symbol = 'a'
+    op_symbol = "a"
 
     def _dagger_(self):
         return CreateFermion_A(*self.state)
-    
+
     def __repr__(self):
         return "AnnihilateFermion_A(%s)" % self.state
 
@@ -42,13 +64,14 @@ class CreateFermion_A(CreateFermion, DoubleFermiVaccum):
     See also AnnihilateFermion_A.
 
     """
+
     is_molA = True
 
-    op_symbol = 'a+'
+    op_symbol = "a+"
 
     def _dagger_(self):
         return AnnihilateFermion_A(*self.state)
-    
+
     def __repr__(self):
         return "CreateFermion_A(%s)" % self.state
 
@@ -64,13 +87,14 @@ class AnnihilateFermion_B(AnnihilateFermion, DoubleFermiVaccum):
     See also AnnihilateFermion_A.
 
     """
+
     is_molB = True
 
-    op_symbol = 'b'
+    op_symbol = "b"
 
     def _dagger_(self):
         return CreateFermion_A(*self.state)
-    
+
     def __repr__(self):
         return "AnnihilateFermion_B(%s)" % self.state
 
@@ -86,13 +110,14 @@ class CreateFermion_B(CreateFermion, DoubleFermiVaccum):
     See also AnnihilateFermion_A.
 
     """
+
     is_molB = True
 
-    op_symbol = 'b+'
+    op_symbol = "b+"
 
     def _dagger_(self):
         return AnnihilateFermion_B(*self.state)
-    
+
     def __repr__(self):
         return "CreateFermion_B(%s)" % self.state
 
@@ -106,7 +131,7 @@ b = AnnihilateFermion_B
 bd = CreateFermion_B
 
 
-class NO_double_vac():
+class NO_double_vac:
     """
     Normal ordering brackets for double Fermi vaccum.
 
@@ -114,13 +139,14 @@ class NO_double_vac():
     parts.
 
     """
+
     def __new__(cls, arg):
 
         arg = sympify(arg)
         arg = arg.expand()
         if arg.is_Add:
             return Add(*[NO_double_vac(elem) for elem in arg.args])
-        
+
         elif arg.is_Mul:
 
             # separating coefficient from arg
@@ -143,10 +169,10 @@ class NO_double_vac():
                 else:
                     print("Something went wrong:")
                     print(elem, "coresponds to neither molecule A nor B!")
-            
+
             # apply normal ordering brackets to parts A and B separately
             return coeff * NO(Mul(*part_A)) * NO(Mul(*part_B))
-        
+
         # arg is neither Add nor Mul
         else:
             return arg
@@ -165,7 +191,7 @@ def contraction_double_vac(X, Y):
 
         elif X.is_molB and Y.is_molB:
             return contraction(X, Y)
-        
+
         else:
             return S.Zero
 
@@ -198,7 +224,7 @@ def evaluate_deltas_double_vac(expr):
                     indicies[s] = 0
             if isinstance(elem, KroneckerDelta):
                 deltas.append(elem)
-        
+
         for d in deltas:
             # Now we have to check if killable and preferred apply
             # to the same part of the complex.
@@ -207,7 +233,9 @@ def evaluate_deltas_double_vac(expr):
             preferred_molA = d.preferred_index.assumptions0.get("is_molA")
             preferred_molB = d.preferred_index.assumptions0.get("is_molB")
 
-            if (killable_molA and preferred_molA) or (killable_molB and preferred_molB):
+            if (killable_molA and preferred_molA) or (
+                killable_molB and preferred_molB
+            ):
 
                 if d.killable_index.is_Symbol and indicies[d.killable_index]:
                     # Method killabel_index returns index containing less information
@@ -216,15 +244,18 @@ def evaluate_deltas_double_vac(expr):
                     expr = expr.subs(d.killable_index, d.preferred_index)
                     if len(deltas) > 1:
                         return evaluate_deltas_double_vac(expr)
-                
-                elif (d.preferred_index.is_Symbol and indicies[d.preferred_index]
-                      and d.indices_contain_equal_information):
+
+                elif (
+                    d.preferred_index.is_Symbol
+                    and indicies[d.preferred_index]
+                    and d.indices_contain_equal_information
+                ):
                     # Here we have situation where the preferred_index appers somewhere
-                    # else in the expression. We can change 
+                    # else in the expression. We can change
                     expr = expr.subs(d.preferred_index, d.killable_index)
                     if len(deltas) > 1:
                         return evaluate_deltas_double_vac(expr)
-                
+
                 else:
                     pass
             # Indicies correspond to diffrent parts of the complex! Delta is zero.
@@ -237,30 +268,36 @@ def evaluate_deltas_double_vac(expr):
         return expr
 
 
-# Some debugs and checks (will be deleted in final version).
-# There is a plan to add some example files instead.
+if __name__ == "__main__":
+    # Some debugs and checks (will be deleted in final version).
+    # There is a plan to add some example files instead.
 
-p, q = symbols('p q', is_molA=True, cls=Dummy)
-r, s = symbols('r s', is_molB=True, cls=Dummy)
+    p, q = symbols("p q", is_molA=True, cls=Dummy)
+    r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-v = AntiSymmetricTensor('v', (p, r,), (q, s,))
-vA = AntiSymmetricTensor('(v_A)', (r,), (s,))
-vB = AntiSymmetricTensor('(v_B)', (p,), (q,))
-V0 = symbols('V_0')
+    v = AntiSymmetricTensor("v", (p, r,), (q, s,))
+    vA = AntiSymmetricTensor("(v_A)", (r,), (s,))
+    vB = AntiSymmetricTensor("(v_B)", (p,), (q,))
+    V0 = symbols("V_0")
 
-V = v*ad(q)*a(p)*bd(s)*b(r) + vA*bd(s)*b(r) + vB*ad(p)*a(q) + V0
+    V = (
+        v * ad(q) * a(p) * bd(s) * b(r)
+        + vA * bd(s) * b(r)
+        + vB * ad(p) * a(q)
+        + V0
+    )
 
-expr = NO_double_vac(V)
-print(latex(expr))
-print()
+    expr = NO_double_vac(V)
+    print(latex(expr))
+    print()
 
-a1, a2 = symbols('a1 a2', is_molA=True, above_fermi=True, cls=Dummy)
-i1, i2 = symbols('i1 i2', is_molA=True, below_fermi=True, cls=Dummy)
+    a1, a2 = symbols("a1 a2", is_molA=True, above_fermi=True, cls=Dummy)
+    i1, i2 = symbols("i1 i2", is_molA=True, below_fermi=True, cls=Dummy)
 
-b1, b2 = symbols('b1 b2', is_molB=True, above_fermi=True, cls=Dummy)
-j1, j2 = symbols('j1 j2', is_molB=True, below_fermi=True, cls=Dummy)
+    b1, b2 = symbols("b1 b2", is_molB=True, above_fermi=True, cls=Dummy)
+    j1, j2 = symbols("j1 j2", is_molB=True, below_fermi=True, cls=Dummy)
 
-expr = ad(p) * a(q) * KroneckerDelta(p, q)
-expr = evaluate_deltas_double_vac(expr)
-print(latex(expr))
-print()
+    expr = ad(p) * a(q) * KroneckerDelta(p, q)
+    expr = evaluate_deltas_double_vac(expr)
+    print(latex(expr))
+    print()
