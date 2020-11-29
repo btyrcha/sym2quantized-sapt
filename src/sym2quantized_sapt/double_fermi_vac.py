@@ -182,11 +182,69 @@ def contraction_double_vac(X, Y):
 
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
 
-        if X.is_molA and Y.is_molA:
-            return contraction(X, Y)
+        if isinstance(X, AnnihilateFermion_A) and isinstance(
+            Y, CreateFermion_A
+        ):
+            if Y.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
 
-        elif X.is_molB and Y.is_molB:
-            return contraction(X, Y)
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("a1", is_molA=True, above_fermi=True)
+            )
+
+        if isinstance(X, CreateFermion_A) and isinstance(
+            Y, AnnihilateFermion_A
+        ):
+            if Y.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("i1", is_molA=True, below_fermi=True)
+            )
+
+        if isinstance(X, AnnihilateFermion_B) and isinstance(
+            Y, CreateFermion_B
+        ):
+            if Y.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("b1", is_molB=True, above_fermi=True)
+            )
+
+        if isinstance(X, CreateFermion_B) and isinstance(
+            Y, AnnihilateFermion_B
+        ):
+            if Y.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("j1", is_molB=True, below_fermi=True)
+            )
 
         else:
             return S.Zero
