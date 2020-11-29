@@ -10,6 +10,7 @@ from sympy.physics.secondquant import (
     contraction,
     evaluate_deltas,
 )
+
 from sympy import (
     S,
     Symbol,
@@ -39,7 +40,6 @@ class AnnihilateFermion_A(AnnihilateFermion, DoubleFermiVaccum):
     Allows distinguishing creation and annihiltaion
     operators corresponding to A or B part of the complex/
     /dimer.
-
     """
 
     is_molA = True
@@ -62,7 +62,6 @@ class CreateFermion_A(CreateFermion, DoubleFermiVaccum):
     to molecule A.
 
     See also AnnihilateFermion_A.
-
     """
 
     is_molA = True
@@ -85,7 +84,6 @@ class AnnihilateFermion_B(AnnihilateFermion, DoubleFermiVaccum):
     to molecule B.
 
     See also AnnihilateFermion_A.
-
     """
 
     is_molB = True
@@ -108,7 +106,6 @@ class CreateFermion_B(CreateFermion, DoubleFermiVaccum):
     to molecule B.
 
     See also AnnihilateFermion_A.
-
     """
 
     is_molB = True
@@ -137,7 +134,6 @@ class NO_double_vac:
 
     Assumes arg consits only is_molA, is_molB or commuting
     parts.
-
     """
 
     def __new__(cls, arg):
@@ -182,8 +178,8 @@ def contraction_double_vac(X, Y):
     """
     Calculates contraction for operators corresponding
     to either molecule A or molecule B.
-
     """
+
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
 
         if X.is_molA and Y.is_molA:
@@ -207,9 +203,9 @@ def evaluate_deltas_double_vac(expr):
     Substiution are evaluated for double Fermi vaccum case. Therefore indicies
     in KronecerDelta should have an assumptions:
     - is_molA=True if this index applies only to part A of the complex,
-    - is_molB=True if this index applies only to part A of the complex.
-
+    - is_molB=True if this index applies only to part B of the complex.
     """
+
     if isinstance(expr, Add):
         return Add(*[evaluate_deltas_double_vac(arg) for arg in expr.args])
 
@@ -275,6 +271,12 @@ if __name__ == "__main__":
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
+    a1, a2 = symbols("a1 a2", is_molA=True, above_fermi=True, cls=Dummy)
+    i1, i2 = symbols("i1 i2", is_molA=True, below_fermi=True, cls=Dummy)
+
+    b1, b2 = symbols("b1 b2", is_molB=True, above_fermi=True, cls=Dummy)
+    j1, j2 = symbols("j1 j2", is_molB=True, below_fermi=True, cls=Dummy)
+
     v = AntiSymmetricTensor("v", (p, r,), (q, s,))
     vA = AntiSymmetricTensor("(v_A)", (r,), (s,))
     vB = AntiSymmetricTensor("(v_B)", (p,), (q,))
@@ -291,13 +293,9 @@ if __name__ == "__main__":
     print(latex(expr))
     print()
 
-    a1, a2 = symbols("a1 a2", is_molA=True, above_fermi=True, cls=Dummy)
-    i1, i2 = symbols("i1 i2", is_molA=True, below_fermi=True, cls=Dummy)
+    expr = NO(ad(p) * a(q)).doit(wicks=True)
+    expr = expand(expr)
 
-    b1, b2 = symbols("b1 b2", is_molB=True, above_fermi=True, cls=Dummy)
-    j1, j2 = symbols("j1 j2", is_molB=True, below_fermi=True, cls=Dummy)
-
-    expr = ad(p) * a(q) * KroneckerDelta(p, q)
-    expr = evaluate_deltas_double_vac(expr)
+    expr = wicks(ad(p) * a(q))
+    exor = evaluate_deltas_double_vac(expr)
     print(latex(expr))
-    print()
