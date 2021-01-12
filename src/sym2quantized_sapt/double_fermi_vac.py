@@ -156,20 +156,24 @@ class NO_double_vac:
             else:
                 coeff = S.One
 
+            # Some terms in the sequence may be already normaly ordered
+            ordered = []
             part_A = []
             part_B = []
             for elem in seq:
-                if elem.is_molA:
+                if isinstance(elem, NO):
+                    ordered.append(elem)
+                elif elem.is_molA:
                     part_A.append(elem)
                 elif elem.is_molB:
                     part_B.append(elem)
-                # elem neither is_molA, is_molB nor commuting
+                # elem neither is_molA, is_molB, NO nor commuting
                 else:
                     print("Something went wrong:")
                     print(elem, "coresponds to neither molecule A nor B!")
 
             # apply normal ordering brackets to parts A and B separately
-            return coeff * NO(Mul(*part_A)) * NO(Mul(*part_B))
+            return coeff * NO(Mul(*part_A)) * NO(Mul(*part_B)) * Mul(*ordered)
 
         # arg is neither Add nor Mul
         else:
@@ -326,7 +330,8 @@ def evaluate_deltas_double_vac(expr):
 
 def _get_contractions_double_vac(string):
     """
-    Argument string is a touple of fermionic operators. Returns Add object.
+    Finds all posible contractions for given 
+    touple of fermionic operators. Returns Add object.
 
     Helper function.
     """
@@ -363,6 +368,49 @@ def _get_contractions_double_vac(string):
     return Add(*result)
 
 
+def wicks_double_vac(expr, **kw_args):
+    """
+    Returns Wicks Theorem expansion of a given expresion.
+    """
+    opts = {
+        "simplify_kronecker_deltas": True,
+        "expand": True,
+    }
+    opts.update(kw_args)
+
+    expr = expand(expr)
+
+    if isinstance(expr, Add):
+        return Add(*[wicks_double_vac(arg, **kw_args) for arg in expr.args])
+
+    elif isinstance(expr, Mul):
+
+        # Commuting and not-commuting parts
+        com_part = []
+        string = []
+        for elem in expr.args:
+            if elem.is_commutative:
+                com_part.append(elem)
+            else:
+                string.append(elem)
+
+        string = tuple(string)
+
+        # Finding all contractions
+        ans = _get_contractions_double_vac(string)
+        ans = Mul(*com_part) * ans
+
+        if opts["expand"]:
+            ans = ans.expand()
+        if opts["simplify_kronecker_deltas"]:
+            ans = evaluate_deltas(ans)
+
+        return ans
+
+    else:
+        return expr
+
+
 if __name__ == "__main__":
     # Some debugs and checks (will be deleted in final version).
     # There is a plan to add some example files instead.
@@ -387,3 +435,7 @@ if __name__ == "__main__":
         + vB * ad(p) * a(q)
         + V0
     )
+
+    expr = vA * bd(s) * b(r)
+    expr = wicks_double_vac(expr)
+    print(latex(expr))
