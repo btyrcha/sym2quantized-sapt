@@ -9,6 +9,8 @@ from sympy.physics.secondquant import (
     wicks,
     contraction,
     evaluate_deltas,
+    substitute_dummies,
+    _get_contractions,
 )
 
 from sympy import (
@@ -322,6 +324,45 @@ def evaluate_deltas_double_vac(expr):
         return expr
 
 
+def _get_contractions_double_vac(string):
+    """
+    Argument string is a touple of fermionic operators. Returns Add object.
+
+    Helper function.
+    """
+
+    result = [NO_double_vac(Mul(*string))]
+
+    for i in range(len(string) - 1):
+        for j in range(i + 1, len(string)):
+
+            c = contraction_double_vac(string[i], string[j])
+
+            if c:
+                signchange = (j - i + 1) % 2
+                if signchange:
+                    coeff = S.NegativeOne * c
+                else:
+                    coeff = c
+
+                # Operators posible for next level recursion
+                string_next_level = string[i + 1 : j] + string[j + 1 :]
+
+                if string_next_level:
+                    result.append(
+                        coeff
+                        * NO_double_vac(
+                            Mul(*string[:i])
+                            * _get_contractions_double_vac(string_next_level)
+                        )
+                    )
+
+                else:
+                    result.append(coeff * NO_double_vac(Mul(*string[:i])))
+
+    return Add(*result)
+
+
 if __name__ == "__main__":
     # Some debugs and checks (will be deleted in final version).
     # There is a plan to add some example files instead.
@@ -346,14 +387,3 @@ if __name__ == "__main__":
         + vB * ad(p) * a(q)
         + V0
     )
-
-    expr = NO_double_vac(V)
-    print(latex(expr))
-    print()
-
-    expr = NO(ad(p) * a(q)).doit(wicks=True)
-    expr = expand(expr)
-
-    expr = wicks(ad(p) * a(q))
-    exor = evaluate_deltas_double_vac(expr)
-    print(latex(expr))
