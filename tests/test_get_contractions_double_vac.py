@@ -14,7 +14,7 @@ from sym2quantized_sapt.double_fermi_vac import (
 
 def test_can_evaluate_one_mol_contraction():
 
-    reference_latex = r"- \delta_{i_{1} p} \delta_{i_{1} q} - \delta_{i_{1} p} \left\{a^\dagger_{q} a_{s}\right\} + \delta_{i_{1} p} \delta_{i_{1} q} + \delta_{i_{1} p} \left\{a^\dagger_{q} a_{r}\right\} + \delta_{i_{1} q} \left\{a^\dagger_{p} a_{s}\right\} - \delta_{i_{1} q} \left\{a^\dagger_{p} a_{r}\right\} + \left\{a^\dagger_{p} a^\dagger_{q} a_{r} a_{s}\right\}"
+    reference_latex = r"- \delta_{i p} \delta_{i q} - \delta_{i p} \left\{a^\dagger_{q} a_{s}\right\} + \delta_{i p} \delta_{i q} + \delta_{i p} \left\{a^\dagger_{q} a_{r}\right\} + \delta_{i q} \left\{a^\dagger_{p} a_{s}\right\} - \delta_{i q} \left\{a^\dagger_{p} a_{r}\right\} + \left\{a^\dagger_{p} a^\dagger_{q} a_{r} a_{s}\right\}"
 
     p, q, r, s = symbols("p q r s", is_molA=True, cls=Dummy)
 
@@ -29,7 +29,7 @@ def test_can_evaluate_one_mol_contraction():
 
 def test_can_evaluate_two_mol_contraction():
 
-    reference_latex = r"\delta_{i_{1} q} \delta_{j_{1} s} + \delta_{i_{1} q} \left\{b^\dagger_{s} b_{r}\right\} + \delta_{j_{1} s} \left\{a^\dagger_{q} a_{p}\right\} + \left\{a^\dagger_{q} a_{p}\right\} \left\{b^\dagger_{s} b_{r}\right\}"
+    reference_latex = r"\delta_{i q} \delta_{j s} + \delta_{i q} \left\{b^\dagger_{s} b_{r}\right\} + \delta_{j s} \left\{a^\dagger_{q} a_{p}\right\} + \left\{a^\dagger_{q} a_{p}\right\} \left\{b^\dagger_{s} b_{r}\right\}"
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)

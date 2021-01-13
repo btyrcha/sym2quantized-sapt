@@ -74,7 +74,7 @@ def test_can_evaluate_cross_monomer_contraction():
 
 def test_can_evaluate_general_indicies_contraction_1():
 
-    reference_latex = r"\delta_{i_{1} q} \delta_{p q}"
+    reference_latex = r"\delta_{i q} \delta_{p q}"
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     # ad(p) a(q)
@@ -86,7 +86,7 @@ def test_can_evaluate_general_indicies_contraction_1():
 
 def test_can_evaluate_general_indicies_contraction_2():
 
-    reference_latex = r"\delta_{b_{1} s} \delta_{r s}"
+    reference_latex = r"\delta_{b s} \delta_{r s}"
 
     r, s = symbols("r s", is_molB=True, cls=Dummy)
     # b(r) bd(s)

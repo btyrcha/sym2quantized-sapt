@@ -1,16 +1,9 @@
 from sympy.physics.secondquant import (
-    FockStateFermionKet,
-    FockStateFermionBra,
     AnnihilateFermion,
     CreateFermion,
     AntiSymmetricTensor,
-    apply_operators,
     NO,
-    wicks,
     contraction,
-    evaluate_deltas,
-    substitute_dummies,
-    _get_contractions,
 )
 
 from sympy import (
@@ -23,7 +16,6 @@ from sympy import (
     Dummy,
     sympify,
     expand,
-    pretty_print,
     latex,
 )
 
@@ -201,7 +193,7 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("a1", is_molA=True, above_fermi=True)
+                Y.state, Dummy("a", is_molA=True, above_fermi=True)
             )
 
         if isinstance(X, CreateFermion_A) and isinstance(
@@ -217,7 +209,7 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("i1", is_molA=True, below_fermi=True)
+                Y.state, Dummy("i", is_molA=True, below_fermi=True)
             )
 
         if isinstance(X, AnnihilateFermion_B) and isinstance(
@@ -233,7 +225,7 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("b1", is_molB=True, above_fermi=True)
+                Y.state, Dummy("b", is_molB=True, above_fermi=True)
             )
 
         if isinstance(X, CreateFermion_B) and isinstance(
@@ -249,7 +241,7 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("j1", is_molB=True, below_fermi=True)
+                Y.state, Dummy("j", is_molB=True, below_fermi=True)
             )
 
         else:
@@ -373,7 +365,7 @@ def wicks_double_vac(expr, **kw_args):
     Returns Wicks Theorem expansion of a given expresion.
     """
     opts = {
-        "simplify_kronecker_deltas": True,
+        "simplify_kronecker_deltas": False,
         "expand": True,
     }
     opts.update(kw_args)
@@ -403,7 +395,7 @@ def wicks_double_vac(expr, **kw_args):
         if opts["expand"]:
             ans = ans.expand()
         if opts["simplify_kronecker_deltas"]:
-            ans = evaluate_deltas(ans)
+            ans = evaluate_deltas_double_vac(ans)
 
         return ans
 
@@ -417,12 +409,6 @@ if __name__ == "__main__":
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
-
-    a1, a2 = symbols("a1 a2", is_molA=True, above_fermi=True, cls=Dummy)
-    i1, i2 = symbols("i1 i2", is_molA=True, below_fermi=True, cls=Dummy)
-
-    b1, b2 = symbols("b1 b2", is_molB=True, above_fermi=True, cls=Dummy)
-    j1, j2 = symbols("j1 j2", is_molB=True, below_fermi=True, cls=Dummy)
 
     v = AntiSymmetricTensor("v", (p, r,), (q, s,))
     vA = AntiSymmetricTensor("(v_A)", (r,), (s,))
