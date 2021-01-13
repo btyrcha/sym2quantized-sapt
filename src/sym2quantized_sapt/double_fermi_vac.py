@@ -418,7 +418,7 @@ if __name__ == "__main__":
     V = (
         v * ad(q) * a(p) * bd(s) * b(r)
         + vA * bd(s) * b(r)
-        + vB * ad(p) * a(q)
+        + vB * ad(q) * a(p)
         + V0
     )
 
