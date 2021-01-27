@@ -403,6 +403,35 @@ def wicks_double_vac(expr, **kw_args):
         return expr
 
 
+def get_fully_contracted(expr):
+    """
+    Leaves only fully contracted terms in a normal ordered expression.
+    """
+
+    if isinstance(expr, Add):
+        return Add(*[get_fully_contracted(term) for term in expr.args])
+
+    elif isinstance(expr, Mul):
+
+        is_contr = True
+        for term in expr.args:
+            if (
+                isinstance(term, NO)
+                or isinstance(term, AnnihilateFermion)
+                or isinstance(term, CreateFermion)
+            ):
+                is_contr = False
+                break
+
+        if is_contr:
+            return expr
+        else:
+            return S.Zero
+
+    else:
+        return expr
+
+
 if __name__ == "__main__":
     # Some debugs and checks (will be deleted in final version).
     # There is a plan to add some example files instead.
