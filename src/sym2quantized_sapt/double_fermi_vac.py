@@ -1,6 +1,7 @@
 from sympy.physics.secondquant import (
     AnnihilateFermion,
     CreateFermion,
+    TensorSymbol,
     AntiSymmetricTensor,
     NO,
     contraction,
@@ -10,6 +11,7 @@ from sympy import (
     S,
     Symbol,
     symbols,
+    Tuple,
     Add,
     Mul,
     KroneckerDelta,
@@ -120,6 +122,30 @@ a = AnnihilateFermion_A
 ad = CreateFermion_A
 b = AnnihilateFermion_B
 bd = CreateFermion_B
+
+
+class TensorDoubleVac(TensorSymbol):
+    """
+    Class for tensor symbols.
+    """
+
+    def __new__(cls, symbol, upper, lower):
+
+        symbol = sympify(symbol)
+        upper = Tuple(*upper)
+        lower = Tuple(*lower)
+
+        return TensorSymbol.__new__(cls, symbol, upper, lower)
+
+    def _latex(self, printer):
+        return "%s^{%s}_{%s}" % (
+            self.args[0],
+            "".join([i.name for i in self.args[1]]),
+            "".join([i.name for i in self.args[2]]),
+        )
+
+    def __str__(self):
+        return "%s(%s,%s)" % self.args
 
 
 class NO_double_vac:
@@ -439,9 +465,9 @@ if __name__ == "__main__":
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-    v = AntiSymmetricTensor("v", (p, r,), (q, s,))
-    vA = AntiSymmetricTensor("(v_A)", (r,), (s,))
-    vB = AntiSymmetricTensor("(v_B)", (p,), (q,))
+    v = TensorDoubleVac("v", (p, r,), (q, s,))
+    vA = TensorDoubleVac("(v_A)", (r,), (s,))
+    vB = TensorDoubleVac("(v_B)", (p,), (q,))
     V0 = symbols("V_0")
 
     V = (
@@ -451,6 +477,10 @@ if __name__ == "__main__":
         + V0
     )
 
-    expr = vA * bd(s) * b(r)
-    expr = wicks_double_vac(expr)
-    print(latex(expr))
+    print(latex(V), "\n")
+
+    expr = wicks_double_vac(V, simplify_kronecer_deltas=True)
+    print(latex(expr), "\n")
+
+    expr = get_fully_contracted(expr)
+    print(latex(expr), "\n")
