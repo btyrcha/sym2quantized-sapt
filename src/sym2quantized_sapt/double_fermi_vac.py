@@ -5,6 +5,7 @@ from sympy.physics.secondquant import (
     AntiSymmetricTensor,
     NO,
     contraction,
+    _get_ordered_dummies,
 )
 
 from sympy import (
@@ -458,6 +459,133 @@ def get_fully_contracted(expr):
         return expr
 
 
+def substitute_dummies_double_vac(expr):
+
+    molA_aboves = []
+    molA_belows = []
+    molA_generals = []
+
+    molB_aboves = []
+    molB_belows = []
+    molB_generals = []
+
+    dummies = expr.atoms(Dummy)
+    a = b = i = j = p = q = 0
+    for elem in dummies:
+        assum = elem.assumptions0
+
+        if assum.get("is_molA"):
+
+            if assum.get("above_fermi"):
+                if a == 0:
+                    index = Dummy("a", **assum)
+                else:
+                    index = Dummy("a_{0}".format(a), **assum)
+                molA_aboves.append(index)
+                a += 1
+
+            elif assum.get("below_fermi"):
+                if i == 0:
+                    index = Dummy("i", **assum)
+                else:
+                    index = Dummy("i_{0}".format(i), **assum)
+                molA_belows.append(index)
+                i += 1
+
+            else:
+                if p == 0:
+                    index = Dummy("p", **assum)
+                else:
+                    index = Dummy("p_{0}".format(p), **assum)
+                molA_generals.append(index)
+                p += 1
+
+        if assum.get("is_molB"):
+
+            if assum.get("above_fermi"):
+                if b == 0:
+                    index = Dummy("b", **assum)
+                else:
+                    index = Dummy("b_{0}".format(b), **assum)
+                molB_aboves.append(index)
+                b += 1
+
+            elif assum.get("below_fermi"):
+                if j == 0:
+                    index = Dummy("j", **assum)
+                else:
+                    index = Dummy("j_{0}".format(j), **assum)
+                molB_belows.append(index)
+                j += 1
+
+            else:
+                if q == 0:
+                    index = Dummy("q", **assum)
+                else:
+                    index = Dummy("q_{0}".format(q), **assum)
+                molB_generals.append(index)
+                q += 1
+
+    expr = expr.expand()
+    terms = Add.make_args(expr)
+    new_terms = []
+    for term in terms:
+        ordered = _get_ordered_dummies(term)
+
+        a = iter(molA_aboves)
+        i = iter(molA_belows)
+        p = iter(molA_generals)
+
+        b = iter(molB_aboves)
+        j = iter(molB_belows)
+        q = iter(molB_generals)
+
+        subsdict = {}
+        for d in ordered:
+            assum = d.assumptions0
+
+            if assum.get("is_molA"):
+                if assum.get("above_fermi"):
+                    subsdict[d] = next(a)
+                elif assum.get("below_fermi"):
+                    subsdict[d] = next(i)
+                else:
+                    subsdict[d] = next(p)
+
+            if assum.get("is_molB"):
+                if assum.get("above_fermi"):
+                    subsdict[d] = next(b)
+                elif assum.get("below_fermi"):
+                    subsdict[d] = next(j)
+                else:
+                    subsdict[d] = next(q)
+
+        subslist = []
+        final_subs = []
+        for k, v in subsdict.items():
+            if k == v:
+                continue
+            if v in subsdict:
+                # We check if the sequence of substitutions end quickly.  In
+                # that case, we can avoid temporary symbols if we ensure the
+                # correct substitution order.
+                if subsdict[v] in subsdict:
+                    # (x, y) -> (y, x),  we need a temporary variable
+                    x = Dummy("x")
+                    subslist.append((k, x))
+                    final_subs.append((x, v))
+                else:
+                    # (x, y) -> (y, a),  x->y must be done last
+                    # but before temporary variables are resolved
+                    final_subs.insert(0, (k, v))
+            else:
+                subslist.append((k, v))
+        subslist.extend(final_subs)
+        new_terms.append(term.subs(subslist))
+
+    return Add(*new_terms)
+
+
 if __name__ == "__main__":
     # Some debugs and checks (will be deleted in final version).
     # There is a plan to add some example files instead.
@@ -479,8 +607,11 @@ if __name__ == "__main__":
 
     print(latex(V), "\n")
 
-    expr = wicks_double_vac(V, simplify_kronecer_deltas=True)
+    expr = wicks_double_vac(V, simplify_kronecker_deltas=True)
     print(latex(expr), "\n")
 
     expr = get_fully_contracted(expr)
+    print(latex(expr), "\n")
+
+    expr = substitute_dummies_double_vac(expr)
     print(latex(expr), "\n")
