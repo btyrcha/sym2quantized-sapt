@@ -21,17 +21,18 @@ from sym2quantized_sapt.double_fermi_vac import (
     evaluate_deltas_double_vac,
     get_fully_contracted,
     substitute_dummies_double_vac,
+    spin_integration,
 )
 
 
 p, q = symbols("p q", is_molA=True, cls=Dummy)
 r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-a1, a2 = symbols("a_{1} a_{2}", is_molA=True, above_fermi=True, cls=Dummy)
-i1, i2 = symbols("i_{1} i_{2}", is_molA=True, below_fermi=True, cls=Dummy)
+a1 = symbols("a", is_molA=True, above_fermi=True, cls=Dummy)
+i1 = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
 
-b1, b2 = symbols("b_{1} b_{2}", is_molB=True, above_fermi=True, cls=Dummy)
-j1, j2 = symbols("j_{1} j_{2}", is_molB=True, below_fermi=True, cls=Dummy)
+b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
+j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
 v = TensorDoubleVac("v", (p, r,), (q, s,))
 vA = TensorDoubleVac("(v_A)", (r,), (s,))
@@ -44,17 +45,6 @@ V = (
     + vB * ad(q) * a(p)
     + V0
 )
-
-# This fragment calculates and prints normal ordered operator V
-# and separately its fully contracted terms.
-"""
-expr = wicks_double_vac(V)
-expr = evaluate_deltas_double_vac(expr)
-print(latex(expr))
-
-expr = get_fully_contracted(expr)
-print("\n", latex(expr), "\n")
-"""
 
 P10 = (
     S.NegativeOne
@@ -84,18 +74,21 @@ P11 = (
 
 P = P10 + P01 + P11
 
-# print(latex(P10), "\n")
-# print(latex(P01), "\n")
-# print(latex(P11), "\n")
+print("First order MBPT - SAPT Exchange Energy is defined as:")
+print("E(10)_exch = < Phi |V P| Phi >", "\n")
+
+print("where")
+print("$V$ =", latex(V), "\n")
+print("and assuming $S^2$ approximation")
+print("$P$ =", latex(P), "\n")
 
 expr = V * P
-expr = wicks_double_vac(expr)
-expr = evaluate_deltas_double_vac(expr)
-
-# print(latex(expr), "\n")
-
+expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
 expr = get_fully_contracted(expr)
-print("\n", latex(expr), "\n")
+print("It can be written in using only one- and two-electron integrals as:")
+print("$E^{(10)}_{exch}$ =", latex(expr), "\n")
 
-expr = substitute_dummies_double_vac(expr)
-print(latex(expr), "\n")
+
+expr = spin_integration(expr)
+print("After performing spin integration in RHF case it takes form:")
+print("$E^{(10)}_{exch}$ =", latex(expr), "\n")

@@ -138,6 +138,15 @@ class TensorDoubleVac(TensorSymbol):
 
         return TensorSymbol.__new__(cls, symbol, upper, lower)
 
+    def symbol(self):
+        return self.args[0]
+
+    def upper(self):
+        return self.args[1]
+
+    def lower(self):
+        return self.args[2]
+
     def _latex(self, printer):
         return "%s^{%s}_{%s}" % (
             self.args[0],
@@ -394,6 +403,7 @@ def wicks_double_vac(expr, **kw_args):
     opts = {
         "simplify_kronecker_deltas": False,
         "expand": True,
+        "substitute_dummies": True,
     }
     opts.update(kw_args)
 
@@ -423,6 +433,8 @@ def wicks_double_vac(expr, **kw_args):
             ans = ans.expand()
         if opts["simplify_kronecker_deltas"]:
             ans = evaluate_deltas_double_vac(ans)
+        if opts["substitute_dummies"]:
+            ans = substitute_dummies_double_vac(ans)
 
         return ans
 
@@ -460,6 +472,18 @@ def get_fully_contracted(expr):
 
 
 def substitute_dummies_double_vac(expr):
+    """
+    Substiutute Dummy indicies systematicaly across the expresion
+    making it posible to idenify terms that only differ due to index names.
+
+    Always creates new Dummy indicies with the following manner:
+    a, a_1, a_2, ... - particle indicies of molecule A,
+    b, b_1, b_2, ... - particle indicies of molecule B,
+    i, i_1, i_2, ... - hole indicies of molecule A,
+    j, j_1, j_2, ... - hole indicies of molecule B,
+    p, p_1, p_2, ... - general idnicies of molecule A,
+    q, q_1, q_2, ... - general idnicies of molecule B.
+    """
 
     molA_aboves = []
     molA_belows = []
@@ -586,6 +610,72 @@ def substitute_dummies_double_vac(expr):
     return Add(*new_terms)
 
 
+def _count_loops(upper, lower):
+    """
+    Helper function for spin integration.
+
+    Returns number of loops in a corresponding Goldstone diagram.
+    """
+
+    l = 0
+    N = len(upper)
+    visited = [0] * N
+    graph = [[0] * N for i in range(N)]
+    for i in range(N):
+        for j in range(N):
+            if upper[i] == lower[j]:
+                graph[i][j] = 1
+                graph[j][i] = 1
+
+    def _DFS(i):
+        visited[i] = 1
+        for j in range(N):
+            if graph[i][j] and not visited[j]:
+                _DFS(j)
+
+    for i in range(N):
+        if not visited[i]:
+            _DFS(i)
+            l += 1
+
+    return l
+
+
+def spin_integration(expr):
+    """
+    Integrates expresion over spin variables assuming
+    the Restricted Hartree-Fock case.
+    
+    Indicies in returned expression refer to orbitals.
+    """
+
+    if isinstance(expr, Add):
+        return Add(*[spin_integration(arg) for arg in expr.args])
+
+    elif isinstance(expr, Mul):
+        upper = []
+        lower = []
+        for elem in expr.args:
+            if isinstance(elem, TensorSymbol):
+                upper += [index for index in elem.upper()]
+                lower += [index for index in elem.lower()]
+
+        l = _count_loops(upper, lower)
+
+        return Mul(2 ** (l), expr)
+
+    elif isinstance(expr, TensorSymbol):
+        upper = expr.upper()
+        lower = expr.lower()
+
+        l = _count_loops(upper, lower)
+
+        return Mul(2 ** (l), expr)
+
+    else:
+        return expr
+
+
 if __name__ == "__main__":
     # Some debugs and checks (will be deleted in final version).
     # There is a plan to add some example files instead.
@@ -613,5 +703,5 @@ if __name__ == "__main__":
     expr = get_fully_contracted(expr)
     print(latex(expr), "\n")
 
-    expr = substitute_dummies_double_vac(expr)
+    expr = spin_integration(expr)
     print(latex(expr), "\n")
