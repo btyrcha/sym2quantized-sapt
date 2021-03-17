@@ -72,17 +72,17 @@ print("First order MBPT - SAPT Exchange Energy is defined as:")
 print("E(10)_exch = < Phi |V P| Phi >", "\n")
 
 print("where")
-print("$V$ =", latex(V), "\n")
-print("and assuming $S^2$ approximation")
-print("$P$ =", latex(P), "\n")
+print("V =", latex(V), "\n")
+print("and assuming S^2 approximation")
+print("P =", latex(P), "\n")
 
 expr = V * P
 expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
 expr = get_fully_contracted(expr)
 print("It can be written in using only one- and two-electron integrals as:")
-print("$E^{(10)}_{exch}$ =", latex(expr), "\n")
+print("E(10)_exch =", latex(expr), "\n")
 
 
 expr = spin_integration(expr)
 print("After performing spin integration in RHF case it takes form:")
-print("$E^{(10)}_{exch}$ =", latex(expr), "\n")
+print("E(10)_exch =", latex(expr), "\n")
