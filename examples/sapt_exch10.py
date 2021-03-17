@@ -9,8 +9,7 @@ Second‐quantization approach and comparison with full configuration interactio
 results." The Journal of chemical physics 100.2 (1994): 1312-1325.
 """
 
-from sympy import symbols, Dummy, latex, Add, S
-from sympy.physics.secondquant import NO
+from sympy import symbols, Dummy, latex
 from sym2quantized_sapt.double_fermi_vac import (
     TensorDoubleVac,
     ad,
@@ -18,9 +17,7 @@ from sym2quantized_sapt.double_fermi_vac import (
     bd,
     b,
     wicks_double_vac,
-    evaluate_deltas_double_vac,
     get_fully_contracted,
-    substitute_dummies_double_vac,
     spin_integration,
 )
 
@@ -47,24 +44,21 @@ V = (
 )
 
 P10 = (
-    S.NegativeOne
-    * TensorDoubleVac("s", (j1,), (a1,))
+    -TensorDoubleVac("s", (j1,), (a1,))
     * TensorDoubleVac("s", (i1,), (j1,))
     * ad(a1)
     * a(i1)
 )
 
 P01 = (
-    S.NegativeOne
-    * TensorDoubleVac("s", (j1,), (i1,))
+    -TensorDoubleVac("s", (j1,), (i1,))
     * TensorDoubleVac("s", (i1,), (b1,))
     * bd(b1)
     * b(j1)
 )
 
 P11 = (
-    S.NegativeOne
-    * TensorDoubleVac("s", (j1,), (a1,))
+    -TensorDoubleVac("s", (j1,), (a1,))
     * TensorDoubleVac("s", (i1,), (b1,))
     * ad(a1)
     * a(i1)

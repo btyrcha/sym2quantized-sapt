@@ -170,10 +170,10 @@ class NO_double_vac:
 
         arg = sympify(arg)
         arg = arg.expand()
-        if arg.is_Add:
+        if isinstance(arg, Add):
             return Add(*[NO_double_vac(elem) for elem in arg.args])
 
-        elif arg.is_Mul:
+        elif isinstance(arg, Mul):
 
             # separating coefficient from arg
             comuting_part, seq = arg.args_cnc()
