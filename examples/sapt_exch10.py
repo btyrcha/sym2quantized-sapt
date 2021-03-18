@@ -1,12 +1,12 @@
 """
-Derives formula for first order SAPT exchange energy
-in secondquantzation approach.
+Derives formula for first-order SAPT exchange energy
+in second-quantzation approach.
 
 Based on:
 Moszynski, Robert, Bogumil Jeziorski, and Krzysztof Szalewicz. 
 "Many‐body theory of exchange effects in intermolecular interactions. 
 Second‐quantization approach and comparison with full configuration interaction 
-results." The Journal of chemical physics 100.2 (1994): 1312-1325.
+results", The Journal of chemical physics 100 (2), 1312 (1994).
 """
 
 from sympy import symbols, Dummy, latex

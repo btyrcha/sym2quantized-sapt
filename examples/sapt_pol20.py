@@ -1,3 +1,13 @@
+"""
+Derives formula for first-order SAPT electrostatcic energy as well as
+formulas for second-order SAPT induction and dispertion energies.
+
+Based on:
+Stanislaw Rybak, Bogumil Jeziorski, Krzysztof Szalewicz,
+"Many-body symmetry-adapted perturbation theory of intermolecular interactions.
+H_2O and HF dimers", The Journal of Chemical Physics 95, 6576 (1991).
+"""
+
 from sympy import symbols, Dummy, latex
 from sym2quantized_sapt.double_fermi_vac import (
     TensorDoubleVac,

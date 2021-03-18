@@ -447,6 +447,8 @@ def get_fully_contracted(expr):
     Leaves only fully contracted terms in a normal ordered expression.
     """
 
+    expr = expand(expr)
+
     if isinstance(expr, Add):
         return Add(*[get_fully_contracted(term) for term in expr.args])
 
