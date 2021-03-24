@@ -678,6 +678,18 @@ def spin_integration(expr):
         return expr
 
 
+def commutator(A, B):
+    """
+    Commutator of two operators A and B.
+    """
+
+    comm = A * B - B * A
+    comm = expand(comm)
+    comm = wicks_double_vac(comm, substitute_dummies=False)
+
+    return comm
+
+
 if __name__ == "__main__":
     # Some debugs and checks (will be deleted in final version).
     # There is a plan to add some example files instead.
