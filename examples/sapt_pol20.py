@@ -43,21 +43,21 @@ V = (
 
 T10 = (
     TensorDoubleVac("o_B", (i1,), (a1,))
-    / TensorDoubleVac("e", (i1,), (a1,))
+    / TensorDoubleVac("e", (a1,), (i1,))
     * ad(a1)
     * a(i1)
 )
 
 T01 = (
     TensorDoubleVac("o_A", (j1,), (b1,))
-    / TensorDoubleVac("e", (j1,), (b1,))
+    / TensorDoubleVac("e", (b1,), (j1,))
     * bd(b1)
     * b(j1)
 )
 
 T11 = (
     TensorDoubleVac("v", (i1, j1,), (a1, b1,))
-    / TensorDoubleVac("e", (i1, j1,), (a1, b1,))
+    / TensorDoubleVac("e", (a1, b1,), (i1, j1,))
     * ad(a1)
     * a(i1)
     * bd(b1)
