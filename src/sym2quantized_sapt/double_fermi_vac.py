@@ -44,7 +44,7 @@ class AnnihilateFermion_A(AnnihilateFermion, DoubleFermiVaccum):
     op_symbol = "a"
 
     def _dagger_(self):
-        return CreateFermion_A(*self.state)
+        return CreateFermion_A(self.state)
 
     def __repr__(self):
         return "AnnihilateFermion_A(%s)" % self.state
@@ -66,7 +66,7 @@ class CreateFermion_A(CreateFermion, DoubleFermiVaccum):
     op_symbol = "a+"
 
     def _dagger_(self):
-        return AnnihilateFermion_A(*self.state)
+        return AnnihilateFermion_A(self.state)
 
     def __repr__(self):
         return "CreateFermion_A(%s)" % self.state
@@ -88,7 +88,7 @@ class AnnihilateFermion_B(AnnihilateFermion, DoubleFermiVaccum):
     op_symbol = "b"
 
     def _dagger_(self):
-        return CreateFermion_A(*self.state)
+        return CreateFermion_B(self.state)
 
     def __repr__(self):
         return "AnnihilateFermion_B(%s)" % self.state
@@ -110,7 +110,7 @@ class CreateFermion_B(CreateFermion, DoubleFermiVaccum):
     op_symbol = "b+"
 
     def _dagger_(self):
-        return AnnihilateFermion_B(*self.state)
+        return AnnihilateFermion_B(self.state)
 
     def __repr__(self):
         return "CreateFermion_B(%s)" % self.state
@@ -147,12 +147,18 @@ class TensorDoubleVac(TensorSymbol):
     def lower(self):
         return self.args[2]
 
+    def _dagger_(self):
+        return TensorDoubleVac(self.args[0], self.args[2], self.args[1])
+
     def _latex(self, printer):
-        return "%s^{%s}_{%s}" % (
-            self.args[0],
-            "".join([i.name for i in self.args[1]]),
-            "".join([i.name for i in self.args[2]]),
-        )
+        if (not len(self.args[1])) and (not len(self.args[1])):
+            return "%s" % (self.args[0])
+        else:
+            return "%s^{%s}_{%s}" % (
+                self.args[0],
+                "".join([i.name for i in self.args[1]]),
+                "".join([i.name for i in self.args[2]]),
+            )
 
     def __str__(self):
         return "%s(%s,%s)" % self.args
@@ -416,10 +422,13 @@ def wicks_double_vac(expr, **kw_args):
 
         # Commuting and not-commuting parts
         com_part = []
+        NO_part = []
         string = []
         for elem in expr.args:
             if elem.is_commutative:
                 com_part.append(elem)
+            elif isinstance(elem, NO):
+                NO_part.append(elem)
             else:
                 string.append(elem)
 
@@ -427,7 +436,7 @@ def wicks_double_vac(expr, **kw_args):
 
         # Finding all contractions
         ans = _get_contractions_double_vac(string)
-        ans = Mul(*com_part) * ans
+        ans = Mul(*com_part, *NO_part) * ans
 
         if opts["expand"]:
             ans = ans.expand()
@@ -685,7 +694,6 @@ def commutator(A, B):
 
     comm = A * B - B * A
     comm = expand(comm)
-    comm = wicks_double_vac(comm, substitute_dummies=False)
 
     return comm
 
