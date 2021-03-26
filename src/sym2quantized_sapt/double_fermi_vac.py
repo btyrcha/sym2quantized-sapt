@@ -407,7 +407,7 @@ def wicks_double_vac(expr, **kw_args):
     Returns Wicks Theorem expansion of a given expresion.
     """
     opts = {
-        "simplify_kronecker_deltas": False,
+        "simplify_kronecker_deltas": True,
         "expand": True,
         "substitute_dummies": True,
     }
