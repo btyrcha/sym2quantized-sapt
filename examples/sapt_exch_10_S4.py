@@ -41,7 +41,8 @@ V = (
 
 
 P_tensor = (
-    -TensorDoubleVac("s", (r1,), (q1,))
+    0.25
+    * TensorDoubleVac("s", (r1,), (q1,))
     * TensorDoubleVac("s", (r2,), (q2,))
     * TensorDoubleVac("s", (p1,), (s1,))
     * TensorDoubleVac("s", (p2,), (s2,))
