@@ -9,12 +9,13 @@ from sym2quantized_sapt.double_fermi_vac import (
     bd,
     b,
     wicks_double_vac,
-    get_fully_contracted,
-    spin_integration,
 )
+
+from sym2quantized_sapt import spin_integration
 
 
 def test_can_evaluate_sapt_exch_10_energy():
+    """calculates Exch10 RHF expression"""
 
     reference_latex = r"- 2 s^{i}_{b} s^{j}_{i} v_A^{b}_{j} - 2 s^{i}_{j} s^{j}_{a} v_B^{a}_{i} - 4 s^{i}_{b} s^{j}_{i} v^{i_1b}_{i_1j} - 4 s^{i}_{j} s^{j}_{a} v^{aj_1}_{ij_1} - 2 s^{i}_{b} s^{j}_{a} v^{ab}_{ij}"
 
@@ -27,7 +28,11 @@ def test_can_evaluate_sapt_exch_10_energy():
     b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
     j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-    v = TensorDoubleVac("v", (p, r,), (q, s,))
+    v = TensorDoubleVac(
+        "v",
+        (p, r),
+        (q, s),
+    )
     vA = TensorDoubleVac("(v_A)", (r,), (s,))
     vB = TensorDoubleVac("(v_B)", (p,), (q,))
     V0 = symbols("V_0")
@@ -66,7 +71,6 @@ def test_can_evaluate_sapt_exch_10_energy():
 
     expr = V * P
     expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
-    # expr = get_fully_contracted(expr)
     expr = spin_integration(expr)
 
     tested_expr = latex(expr)

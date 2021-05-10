@@ -9,12 +9,13 @@ from sym2quantized_sapt.double_fermi_vac import (
     bd,
     b,
     wicks_double_vac,
-    get_fully_contracted,
-    spin_integration,
 )
 
+from sym2quantized_sapt import spin_integration
 
-def test_can_evaluate_sapt_disp_20_energu():
+
+def test_can_evaluate_sapt_disp_20_energy():
+    """calculates e20_disp energy expression"""
 
     reference_latex = r"\frac{4 v^{ab}_{ij} v^{ij}_{ab}}{e^{ab}_{ij}}"
 
@@ -27,7 +28,11 @@ def test_can_evaluate_sapt_disp_20_energu():
     b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
     j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-    v = TensorDoubleVac("v", (p, r,), (q, s,))
+    v = TensorDoubleVac(
+        "v",
+        (p, r),
+        (q, s),
+    )
     vA = TensorDoubleVac("(v_A)", (r,), (s,))
     vB = TensorDoubleVac("(v_B)", (p,), (q,))
     V0 = symbols("V_0")
@@ -40,8 +45,16 @@ def test_can_evaluate_sapt_disp_20_energu():
     )
 
     T11 = (
-        TensorDoubleVac("v", (i1, j1,), (a1, b1,))
-        / TensorDoubleVac("e", (a1, b1,), (i1, j1,))
+        TensorDoubleVac(
+            "v",
+            (i1, j1),
+            (a1, b1),
+        )
+        / TensorDoubleVac(
+            "e",
+            (a1, b1),
+            (i1, j1),
+        )
         * ad(a1)
         * a(i1)
         * bd(b1)
@@ -50,7 +63,6 @@ def test_can_evaluate_sapt_disp_20_energu():
 
     expr = V * T11
     expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
-    # expr = get_fully_contracted(expr)
     expr = spin_integration(expr)
 
     tested_expr = latex(expr)
