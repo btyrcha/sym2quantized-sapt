@@ -3,12 +3,10 @@ import pytest
 from sympy import Dummy, KroneckerDelta, symbols, latex
 
 from sym2quantized_sapt.double_fermi_vac import (
-    a,
-    ad,
-    b,
-    bd,
     evaluate_deltas_double_vac,
 )
+
+from sym2quantized_sapt.operators import a, ad, b, bd
 
 
 def test_can_evaluate_simple_delta():

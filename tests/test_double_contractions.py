@@ -3,12 +3,10 @@ import pytest
 from sympy import Dummy, symbols, latex
 
 from sym2quantized_sapt.double_fermi_vac import (
-    a,
-    ad,
-    b,
-    bd,
     contraction_double_vac,
 )
+
+from sym2quantized_sapt.operators import a, ad, b, bd
 
 
 def test_can_evaluate_hole_contraction():
@@ -94,4 +92,3 @@ def test_can_evaluate_general_indicies_contraction_2():
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
-

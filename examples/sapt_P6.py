@@ -2,14 +2,8 @@ import time
 
 from sympy import symbols, Dummy, latex
 
-from sym2quantized_sapt.double_fermi_vac import (
-    ad,
-    a,
-    bd,
-    b,
-    wicks_double_vac,
-)
-
+from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
+from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.diagrams import get_only_linked
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
@@ -41,14 +35,8 @@ def get_V_operator():
 
     v = DoubleVacuumTensorSymbol(
         "v",
-        (
-            p,
-            r,
-        ),
-        (
-            q,
-            s,
-        ),
+        (p, r),
+        (q, s),
     )
     vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
     vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))

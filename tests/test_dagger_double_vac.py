@@ -4,12 +4,7 @@ from sympy import symbols, Dummy, latex
 
 from sympy.physics.secondquant import Dagger
 
-from sym2quantized_sapt.double_fermi_vac import (
-    ad,
-    a,
-    bd,
-    b,
-)
+from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 

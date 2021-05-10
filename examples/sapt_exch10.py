@@ -10,8 +10,8 @@ results", The Journal of chemical physics 100 (2), 1312 (1994).
 """
 
 from sympy import symbols, Dummy, latex
-from sym2quantized_sapt.double_fermi_vac import ad, a, bd, b, wicks_double_vac
-
+from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
+from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 

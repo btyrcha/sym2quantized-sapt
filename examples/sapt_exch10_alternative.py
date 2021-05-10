@@ -1,15 +1,8 @@
 from sympy import symbols, Dummy, latex
 
-from sym2quantized_sapt.double_fermi_vac import (
-    ad,
-    a,
-    bd,
-    b,
-    wicks_double_vac,
-    get_fully_contracted,
-)
-
+from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
 from sym2quantized_sapt.diagrams import get_only_linked
+from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
@@ -59,8 +52,9 @@ P = (
 )
 
 expr = V * P
-expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
-expr = get_fully_contracted(expr)
+expr = wicks_double_vac(
+    expr, simplify_kronecker_deltas=True, keep_only_fully_contracted=True
+)
 expr = spin_integration(expr)
 
 print("< V P > =")
