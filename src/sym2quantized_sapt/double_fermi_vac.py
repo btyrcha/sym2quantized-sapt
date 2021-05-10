@@ -696,34 +696,3 @@ def commutator(A, B):
     comm = expand(comm)
 
     return comm
-
-
-if __name__ == "__main__":
-    # Some debugs and checks (will be deleted in final version).
-    # There is a plan to add some example files instead.
-
-    p, q = symbols("p q", is_molA=True, cls=Dummy)
-    r, s = symbols("r s", is_molB=True, cls=Dummy)
-
-    v = TensorDoubleVac("v", (p, r,), (q, s,))
-    vA = TensorDoubleVac("(v_A)", (r,), (s,))
-    vB = TensorDoubleVac("(v_B)", (p,), (q,))
-    V0 = symbols("V_0")
-
-    V = (
-        v * ad(q) * a(p) * bd(s) * b(r)
-        + vA * bd(s) * b(r)
-        + vB * ad(q) * a(p)
-        + V0
-    )
-
-    print(latex(V), "\n")
-
-    expr = wicks_double_vac(V, simplify_kronecker_deltas=True)
-    print(latex(expr), "\n")
-
-    expr = get_fully_contracted(expr)
-    print(latex(expr), "\n")
-
-    expr = spin_integration(expr)
-    print(latex(expr), "\n")
