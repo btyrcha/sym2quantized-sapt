@@ -364,7 +364,7 @@ def evaluate_deltas_double_vac(expr):
 
 def _get_contractions_double_vac(string, keep_only_fully_contracted=False):
     """
-    Finds all posible contractions for given 
+    Finds all posible contractions for given
     touple of fermionic operators. Returns Add object.
 
     Helper function.
@@ -680,7 +680,7 @@ def spin_integration(expr):
     """
     Integrates expresion over spin variables assuming
     the Restricted Hartree-Fock case.
-    
+
     Indicies in returned expression refer to orbitals.
     """
 
