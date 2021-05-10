@@ -25,6 +25,17 @@ def lprint_args(expresion):
     print("\n")
 
 
+def lwrite_args(expresion, file):
+    for arg in expresion.args:
+        if latex(arg)[0] == "-":
+            file.write("& " + latex(arg) + " \\\\")
+            file.write("\n")
+        else:
+            file.write("& " + "+ " + latex(arg) + " \\\\")
+            file.write("\n")
+    file.write("\n")
+
+
 def get_V_operator():
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
@@ -71,17 +82,20 @@ if __name__ == "__main__":
     P4 = get_P4_operator()
 
     expr = V * P4
-    expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
-    expr = get_fully_contracted(expr)
+    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
     expr = spin_integration(expr)
     expr_linked = get_olnly_linked(expr)
 
     ### Stop measuring run time
     run_time = time.time() - start_time
-    print("Program took %s seconds to run...\n" % run_time)
 
-    print("\n< V P4 > =")
-    lprint_args(expr)
 
-    print("< V P4 >_L =")
-    lprint_args(expr_linked)
+with open("sapt_P4.out", "w") as f:
+
+    f.write("Program took %s seconds to run\n" % run_time)
+
+    f.write("\n< V P4 > =\n")
+    lwrite_args(expr, f)
+
+    f.write("\n< V P4 >_L =\n")
+    lwrite_args(expr_linked, f)
