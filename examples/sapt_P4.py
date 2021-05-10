@@ -1,7 +1,7 @@
 import time
 from typing import Tuple
 
-from sympy import symbols, Dummy, latex
+from sympy import symbols, Dummy
 from sympy.core import Expr
 
 from sym2quantized_sapt.double_fermi_vac import (
@@ -15,29 +15,7 @@ from sym2quantized_sapt.double_fermi_vac import (
 )
 
 from sym2quantized_sapt.diagrams import get_only_linked
-from sym2quantized_sapt.utils import timeit
-
-
-def format_expr(expression: Expr) -> str:
-    """formats expression to str encoded LaTeX
-
-    Args:
-        expression (Expr): expression to be encoded
-
-    Returns:
-        str: expression LaTeX string
-    """
-    expression_repr = ""
-    for arg in expression.args:
-        latex_str = latex(arg)
-        # substract sign
-        if latex_str[0] == "-":
-            expression_repr += f"& {latex_str} \\\\ \n"
-        # add sign
-        else:
-            expression_repr += f"& + {latex_str} \\\\ \n"
-
-    return expression_repr
+from sym2quantized_sapt.utils import timeit, format_expr
 
 
 def get_V_operator() -> Expr:
