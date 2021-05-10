@@ -1,0 +1,16 @@
+[run]
+branch=True
+
+[report]
+omit =
+    # omit anything in a .local directory anywhere
+    */.local/*
+    # omit anything in a venv directory anywhere
+    */venv/*
+    # omit everything in .tox directory anywhere
+    */.tox/*
+    # omit conftest.py everywhere
+    */conftest.py
+
+skip_empty = true
+show_missing = true
