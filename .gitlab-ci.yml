@@ -95,7 +95,7 @@ python-3.8.10-test:
     - python3 -m pip install -r requirements_dev.txt
   script:
     - python3 -m pip install -e . --no-use-pep517
-    - coverage run -m pytest tests/
+    - coverage run -m pytest tests/ --slow
     - coverage report
     # ensure all tests were run
     #- coverage report --fail-under 100 --include tests/*
