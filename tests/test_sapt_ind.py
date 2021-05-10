@@ -44,8 +44,8 @@ def test_can_evaluate_sapt_indA_20_energy():
     )
 
     expr = V * T10
-    expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
-    expr = get_fully_contracted(expr)
+    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
+    # expr = get_fully_contracted(expr)
     expr = spin_integration(expr)
 
     tested_expr = latex(expr)

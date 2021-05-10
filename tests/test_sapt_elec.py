@@ -34,8 +34,8 @@ def test_can_evaluate_sapt_pol_10_energy():
     )
 
     expr = V
-    expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
-    expr = get_fully_contracted(expr)
+    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
+    # expr = get_fully_contracted(expr)
 
     tested_expr = latex(expr)
 

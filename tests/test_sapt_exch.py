@@ -65,8 +65,8 @@ def test_can_evaluate_sapt_exch_10_energy():
     P = P10 + P01 + P11
 
     expr = V * P
-    expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
-    expr = get_fully_contracted(expr)
+    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
+    # expr = get_fully_contracted(expr)
     expr = spin_integration(expr)
 
     tested_expr = latex(expr)

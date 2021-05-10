@@ -362,7 +362,7 @@ def evaluate_deltas_double_vac(expr):
         return expr
 
 
-def _get_contractions_double_vac(string):
+def _get_contractions_double_vac(string, keep_only_fully_contracted=False):
     """
     Finds all posible contractions for given 
     touple of fermionic operators. Returns Add object.
@@ -370,7 +370,10 @@ def _get_contractions_double_vac(string):
     Helper function.
     """
 
-    result = [NO_double_vac(Mul(*string))]
+    if keep_only_fully_contracted:
+        result = []
+    else:
+        result = [NO_double_vac(Mul(*string))]
 
     for i in range(len(string) - 1):
         for j in range(i + 1, len(string)):
@@ -392,12 +395,18 @@ def _get_contractions_double_vac(string):
                         coeff
                         * NO_double_vac(
                             Mul(*string[:i])
-                            * _get_contractions_double_vac(string_next_level)
+                            * _get_contractions_double_vac(
+                                string_next_level,
+                                keep_only_fully_contracted=keep_only_fully_contracted,
+                            )
                         )
                     )
 
                 else:
                     result.append(coeff * NO_double_vac(Mul(*string[:i])))
+
+        if keep_only_fully_contracted:
+            break
 
     return Add(*result)
 
@@ -410,6 +419,7 @@ def wicks_double_vac(expr, **kw_args):
         "simplify_kronecker_deltas": True,
         "expand": True,
         "substitute_dummies": True,
+        "keep_only_fully_contracted": False,
     }
     opts.update(kw_args)
 
@@ -433,10 +443,24 @@ def wicks_double_vac(expr, **kw_args):
                 string.append(elem)
 
         string = tuple(string)
+        n = len(string)
 
-        # Finding all contractions
-        ans = _get_contractions_double_vac(string)
-        ans = Mul(*com_part, *NO_part) * ans
+        if n == 0:
+            ans = expr
+
+        elif n == 1:
+            if opts["keep_only_fully_contracted"]:
+                return S.Zero
+            else:
+                ans = expr
+
+        else:
+            # Finding all contractions
+            ans = _get_contractions_double_vac(
+                string,
+                keep_only_fully_contracted=opts["keep_only_fully_contracted"],
+            )
+            ans = Mul(*com_part, *NO_part) * ans
 
         if opts["expand"]:
             ans = ans.expand()

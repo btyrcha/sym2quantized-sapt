@@ -49,8 +49,8 @@ def test_can_evaluate_sapt_disp_20_energu():
     )
 
     expr = V * T11
-    expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
-    expr = get_fully_contracted(expr)
+    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
+    # expr = get_fully_contracted(expr)
     expr = spin_integration(expr)
 
     tested_expr = latex(expr)
