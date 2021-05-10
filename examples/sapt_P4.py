@@ -1,6 +1,8 @@
 import time
+from typing import Tuple
 
 from sympy import symbols, Dummy, latex
+from sympy.core import Expr
 
 from sym2quantized_sapt.double_fermi_vac import (
     TensorDoubleVac,
@@ -9,34 +11,41 @@ from sym2quantized_sapt.double_fermi_vac import (
     bd,
     b,
     wicks_double_vac,
-    get_fully_contracted,
     spin_integration,
 )
 
 from sym2quantized_sapt.diagrams import get_only_linked
+from sym2quantized_sapt.utils import timeit
 
 
-def lprint_args(expresion):
-    for arg in expresion.args:
-        if latex(arg)[0] == "-":
-            print("&", latex(arg), "\\\\")
+def format_expr(expression: Expr) -> str:
+    """formats expression to str encoded LaTeX
+
+    Args:
+        expression (Expr): expression to be encoded
+
+    Returns:
+        str: expression LaTeX string
+    """
+    expression_repr = ""
+    for arg in expression.args:
+        latex_str = latex(arg)
+        # substract sign
+        if latex_str[0] == "-":
+            expression_repr += f"& {latex_str} \\\\ \n"
+        # add sign
         else:
-            print("&", "+", latex(arg), "\\\\")
-    print("\n")
+            expression_repr += f"& + {latex_str} \\\\ \n"
+
+    return expression_repr
 
 
-def lwrite_args(expresion, file):
-    for arg in expresion.args:
-        if latex(arg)[0] == "-":
-            file.write("& " + latex(arg) + " \\\\")
-            file.write("\n")
-        else:
-            file.write("& " + "+ " + latex(arg) + " \\\\")
-            file.write("\n")
-    file.write("\n")
+def get_V_operator() -> Expr:
+    """prepares V-tilde operator
 
-
-def get_V_operator():
+    Returns:
+        Expr: SymPy Expr encoding V-tilde (dimer interaction operator)
+    """
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
@@ -65,7 +74,12 @@ def get_V_operator():
     return V
 
 
-def get_P4_operator():
+def get_P4_operator() -> Expr:
+    """constructs exchange-S^4  - P4 operator
+
+    Returns:
+        Expr: SymPy Expr encoding P4 operator (S^4 exchange operator)
+    """
     p1, p2, q1, q2 = symbols("p_1 p_2 q_1 q_2", is_molA=True, cls=Dummy)
     r1, r2, s1, s2 = symbols("r_1 r_2 s_1 s_2", is_molB=True, cls=Dummy)
 
@@ -83,29 +97,52 @@ def get_P4_operator():
     return P_tensor * a_part * b_part
 
 
+@timeit
+def compute_exch10_s4() -> Tuple[Expr, Expr]:
+    """computes Exch10(S^4) contribution: <V P4>
+
+    Returns:
+        Tuple[Expr, Expr]: <V P4> and <V P4>_L
+    """
+    V = get_V_operator()
+    P4 = get_P4_operator()
+
+    # create operator to be averaged
+    expr = V * P4
+
+    # perform wicks
+    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
+
+    # spin integrate for RHF
+    expr_all = spin_integration(expr)
+
+    # extract linked only
+    expr_linked = get_only_linked(expr_all)
+
+    # return both
+    return expr_all, expr_linked
+
+
 if __name__ == "__main__":
 
     ### Start measuring run time
     start_time = time.time()
 
-    V = get_V_operator()
-    P4 = get_P4_operator()
-
-    expr = V * P4
-    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
-    expr = spin_integration(expr)
-    expr_linked = get_only_linked(expr)
+    expr, expr_linked = compute_exch10_s4()
 
     ### Stop measuring run time
     run_time = time.time() - start_time
 
+    plain_expr_str = format_expr(expr)
+    linked_expr_str = format_expr(expr_linked)
+    # write out the results
+    with open("sapt_P4.out", "w") as f:
+        f.write(f"Program took {run_time} seconds to run\n")
 
-with open("sapt_P4.out", "w") as f:
+        # write-down <V P4>
+        f.write("\n< V P4 > =\n")
+        f.write(plain_expr_str)
 
-    f.write("Program took %s seconds to run\n" % run_time)
-
-    f.write("\n< V P4 > =\n")
-    lwrite_args(expr, f)
-
-    f.write("\n< V P4 >_L =\n")
-    lwrite_args(expr_linked, f)
+        # write-down <V P4>_L
+        f.write("\n< V P4 >_L =\n")
+        f.write(linked_expr_str)
