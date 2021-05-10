@@ -11,7 +11,7 @@ from sym2quantized_sapt.double_fermi_vac import (
     spin_integration,
 )
 
-from sym2quantized_sapt.diagrams import get_olnly_linked
+from sym2quantized_sapt.diagrams import get_only_linked
 
 
 def lprint_args(expresion):
@@ -23,7 +23,17 @@ def lprint_args(expresion):
 p, q = symbols("p q", is_molA=True, cls=Dummy)
 r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-v = TensorDoubleVac("v", (p, r,), (q, s,))
+v = TensorDoubleVac(
+    "v",
+    (
+        p,
+        r,
+    ),
+    (
+        q,
+        s,
+    ),
+)
 vA = TensorDoubleVac("(v_A)", (r,), (s,))
 vB = TensorDoubleVac("(v_B)", (p,), (q,))
 V0 = TensorDoubleVac("V_0", (), ())
@@ -58,5 +68,5 @@ lprint_args(expr)
 
 print("Only linked terms of < V P >:")
 print("< V P >_L =")
-expr = get_olnly_linked(expr)
+expr = get_only_linked(expr)
 lprint_args(expr)

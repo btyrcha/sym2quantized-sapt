@@ -2,14 +2,8 @@ from sympy.physics.secondquant import TensorSymbol
 
 from sympy import (
     S,
-    Symbol,
-    symbols,
     Add,
     Mul,
-    KroneckerDelta,
-    Dummy,
-    expand,
-    latex,
 )
 
 
@@ -18,8 +12,8 @@ def _make_simplified_graph(expr):
     Assumes type Mul of argument expr.
 
     Returns:
-    graph - a graph in a matrix represantation,
-    n - number of verticies in a graph.
+    graph - a graph in a matrix representation,
+    n - number of vertices in a graph.
     """
 
     edges = []
@@ -41,12 +35,20 @@ def _make_simplified_graph(expr):
     return graph, n
 
 
-def get_olnly_linked(expr):
+def get_only_linked(expr):
+    """[summary]
+
+    Args:
+        expr ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
 
     if isinstance(expr, Add):
-        return Add(*[get_olnly_linked(arg) for arg in expr.args])
+        return Add(*[get_only_linked(arg) for arg in expr.args])
 
-    elif isinstance(expr, Mul):
+    if isinstance(expr, Mul):
         graph, n = _make_simplified_graph(expr)
 
         visited = [False] * n
@@ -64,8 +66,6 @@ def get_olnly_linked(expr):
         if count == n:
             return expr
 
-        else:
-            return S.Zero
+        return S.Zero
 
-    else:
-        return expr
+    return expr
