@@ -38,7 +38,17 @@ i1, i2 = symbols("i i_1", is_molA=True, below_fermi=True, cls=Dummy)
 b1, b2 = symbols("b b_1", is_molB=True, above_fermi=True, cls=Dummy)
 j1, j2 = symbols("j j_1", is_molB=True, below_fermi=True, cls=Dummy)
 
-v = TensorDoubleVac("v", (p, r,), (q, s,))
+v = TensorDoubleVac(
+    "v",
+    (
+        p,
+        r,
+    ),
+    (
+        q,
+        s,
+    ),
+)
 vA = TensorDoubleVac("(v_A)", (r,), (s,))
 vB = TensorDoubleVac("(v_B)", (p,), (q,))
 V0 = symbols("V_0")

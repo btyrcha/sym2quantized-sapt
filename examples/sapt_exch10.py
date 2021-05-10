@@ -3,9 +3,9 @@ Derives formula for first-order SAPT exchange energy
 in second-quantzation approach.
 
 Based on:
-Moszynski, Robert, Bogumil Jeziorski, and Krzysztof Szalewicz. 
-"Many‐body theory of exchange effects in intermolecular interactions. 
-Second‐quantization approach and comparison with full configuration interaction 
+Moszynski, Robert, Bogumil Jeziorski, and Krzysztof Szalewicz.
+"Many‐body theory of exchange effects in intermolecular interactions.
+Second‐quantization approach and comparison with full configuration interaction
 results", The Journal of chemical physics 100 (2), 1312 (1994).
 """
 
@@ -31,7 +31,17 @@ i1 = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
 b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
 j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-v = TensorDoubleVac("v", (p, r,), (q, s,))
+v = TensorDoubleVac(
+    "v",
+    (
+        p,
+        r,
+    ),
+    (
+        q,
+        s,
+    ),
+)
 vA = TensorDoubleVac("(v_A)", (r,), (s,))
 vB = TensorDoubleVac("(v_B)", (p,), (q,))
 V0 = symbols("V_0")

@@ -3,9 +3,9 @@ Derives formula for first-order SAPT intramonomer correlation
 correction for exchange energy E(11)_exch.
 
 Based on:
-Moszynski, Robert, Bogumil Jeziorski, and Krzysztof Szalewicz. 
-"Many‐body theory of exchange effects in intermolecular interactions. 
-Second‐quantization approach and comparison with full configuration interaction 
+Moszynski, Robert, Bogumil Jeziorski, and Krzysztof Szalewicz.
+"Many‐body theory of exchange effects in intermolecular interactions.
+Second‐quantization approach and comparison with full configuration interaction
 results", The Journal of chemical physics 100 (2), 1312 (1994).
 """
 
@@ -54,7 +54,17 @@ b1, b2 = symbols("b b_1", is_molB=True, above_fermi=True, cls=Dummy)
 j1, j2 = symbols("j j_1", is_molB=True, below_fermi=True, cls=Dummy)
 
 
-v = TensorDoubleVac("v", (q, s,), (p, r,))
+v = TensorDoubleVac(
+    "v",
+    (
+        q,
+        s,
+    ),
+    (
+        p,
+        r,
+    ),
+)
 vA = TensorDoubleVac("(v_A)", (s,), (r,))
 vB = TensorDoubleVac("(v_B)", (q,), (p,))
 V0 = TensorDoubleVac("V_0", (), ())
@@ -72,7 +82,17 @@ V10_dash_dagger = TensorDoubleVac("o_B", (a2,), (i2,)) * ad(i2) * a(a2)
 V01_dash_dagger = TensorDoubleVac("o_A", (b2,), (j2,)) * bd(j2) * b(b2)
 
 V11_dash_dagger = (
-    TensorDoubleVac("v", (a2, b2,), (i2, j2,))
+    TensorDoubleVac(
+        "v",
+        (
+            a2,
+            b2,
+        ),
+        (
+            i2,
+            j2,
+        ),
+    )
     * ad(i2)
     * a(a2)
     * bd(j2)
@@ -121,7 +141,17 @@ P_dash = P10_dash + P01_dash + P11_dash
 T20_part1 = (
     1
     / 4
-    * TensorDoubleVac("t", (i3, i4,), (a3, a4,))
+    * TensorDoubleVac(
+        "t",
+        (
+            i3,
+            i4,
+        ),
+        (
+            a3,
+            a4,
+        ),
+    )
     * ad(a3)
     * ad(a4)
     * a(i4)
@@ -131,7 +161,17 @@ T20_part1 = (
 T20_part2 = (
     -1
     / 4
-    * TensorDoubleVac("t", (i4, i3,), (a3, a4,))
+    * TensorDoubleVac(
+        "t",
+        (
+            i4,
+            i3,
+        ),
+        (
+            a3,
+            a4,
+        ),
+    )
     * ad(a3)
     * ad(a4)
     * a(i4)
@@ -143,7 +183,17 @@ T20 = T20_part1 + T20_part2
 T20_part1_dagger = (
     1
     / 4
-    * TensorDoubleVac("t", (a3, a4,), (i3, i4,))
+    * TensorDoubleVac(
+        "t",
+        (
+            a3,
+            a4,
+        ),
+        (
+            i3,
+            i4,
+        ),
+    )
     * ad(i3)
     * ad(i4)
     * a(a4)
@@ -153,7 +203,17 @@ T20_part1_dagger = (
 T20_part2_dagger = (
     -1
     / 4
-    * TensorDoubleVac("t", (a3, a4,), (i4, i3,))
+    * TensorDoubleVac(
+        "t",
+        (
+            a3,
+            a4,
+        ),
+        (
+            i4,
+            i3,
+        ),
+    )
     * ad(i3)
     * ad(i4)
     * a(a4)
