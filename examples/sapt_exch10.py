@@ -10,17 +10,10 @@ results", The Journal of chemical physics 100 (2), 1312 (1994).
 """
 
 from sympy import symbols, Dummy, latex
-from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
-    ad,
-    a,
-    bd,
-    b,
-    wicks_double_vac,
-    get_fully_contracted,
-    spin_integration,
-)
+from sym2quantized_sapt.double_fermi_vac import ad, a, bd, b, wicks_double_vac
 
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 p, q = symbols("p q", is_molA=True, cls=Dummy)
 r, s = symbols("r s", is_molB=True, cls=Dummy)
@@ -31,7 +24,7 @@ i1 = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
 b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
 j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-v = TensorDoubleVac(
+v = DoubleVacuumTensorSymbol(
     "v",
     (
         p,
@@ -42,8 +35,8 @@ v = TensorDoubleVac(
         s,
     ),
 )
-vA = TensorDoubleVac("(v_A)", (r,), (s,))
-vB = TensorDoubleVac("(v_B)", (p,), (q,))
+vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
 V0 = symbols("V_0")
 
 V = (
@@ -54,22 +47,22 @@ V = (
 )
 
 P10 = (
-    -TensorDoubleVac("s", (j1,), (a1,))
-    * TensorDoubleVac("s", (i1,), (j1,))
+    -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
+    * DoubleVacuumTensorSymbol("s", (i1,), (j1,))
     * ad(a1)
     * a(i1)
 )
 
 P01 = (
-    -TensorDoubleVac("s", (j1,), (i1,))
-    * TensorDoubleVac("s", (i1,), (b1,))
+    -DoubleVacuumTensorSymbol("s", (j1,), (i1,))
+    * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
     * bd(b1)
     * b(j1)
 )
 
 P11 = (
-    -TensorDoubleVac("s", (j1,), (a1,))
-    * TensorDoubleVac("s", (i1,), (b1,))
+    -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
+    * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
     * ad(a1)
     * a(i1)
     * bd(b1)
@@ -87,8 +80,9 @@ print("and assuming S^2 approximation")
 print("P =", latex(P), "\n")
 
 expr = V * P
-expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
-expr = get_fully_contracted(expr)
+expr = wicks_double_vac(
+    expr, simplify_kronecker_deltas=True, keep_only_fully_contracted=True
+)
 print("It can be written in using only one- and two-electron integrals as:")
 print("E(10)_exch =", latex(expr), "\n")
 

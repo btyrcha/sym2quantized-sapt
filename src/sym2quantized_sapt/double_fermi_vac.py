@@ -15,8 +15,8 @@ from sympy import (
     KroneckerDelta,
     Dummy,
     sympify,
-    expand,
 )
+from sympy import expand as sy_expand
 
 
 class DoubleFermiVaccum:
@@ -30,7 +30,7 @@ class AnnihilateFermion_A(AnnihilateFermion, DoubleFermiVaccum):
     Fermionic annihilation operator coresponding
     to molecule A (part A of a complex/dimer).
 
-    Allows distinguishing creation and annihiltaion
+    Allows distinguishing creation and annihilation
     operators corresponding to A or B part of the complex/
     /dimer.
     """
@@ -119,45 +119,6 @@ a = AnnihilateFermion_A
 ad = CreateFermion_A
 b = AnnihilateFermion_B
 bd = CreateFermion_B
-
-
-class TensorDoubleVac(TensorSymbol):
-    """
-    Class for tensor symbols.
-    """
-
-    def __new__(cls, symbol, upper, lower):
-
-        symbol = sympify(symbol)
-        upper = Tuple(*upper)
-        lower = Tuple(*lower)
-
-        return TensorSymbol.__new__(cls, symbol, upper, lower)
-
-    def symbol(self):
-        return self.args[0]
-
-    def upper(self):
-        return self.args[1]
-
-    def lower(self):
-        return self.args[2]
-
-    def _dagger_(self):
-        return TensorDoubleVac(self.args[0], self.args[2], self.args[1])
-
-    def _latex(self, printer):
-        if (not len(self.args[1])) and (not len(self.args[1])):
-            return "%s" % (self.args[0])
-        else:
-            return "%s^{%s}_{%s}" % (
-                self.args[0],
-                "".join([i.name for i in self.args[1]]),
-                "".join([i.name for i in self.args[2]]),
-            )
-
-    def __str__(self):
-        return "%s(%s,%s)" % self.args
 
 
 class NO_double_vac:
@@ -407,22 +368,32 @@ def _get_contractions_double_vac(string, keep_only_fully_contracted=False):
     return Add(*result)
 
 
-def wicks_double_vac(expr, **kw_args):
+def wicks_double_vac(
+    expr, expand=True, keep_only_fully_contracted=False, **kwargs
+):
     """
     Returns Wicks Theorem expansion of a given expresion.
     """
     opts = {
         "simplify_kronecker_deltas": True,
-        "expand": True,
         "substitute_dummies": True,
-        "keep_only_fully_contracted": False,
     }
-    opts.update(kw_args)
+    opts.update(kwargs)
 
-    expr = expand(expr)
+    expr = sy_expand(expr)
 
     if isinstance(expr, Add):
-        return Add(*[wicks_double_vac(arg, **kw_args) for arg in expr.args])
+        return Add(
+            *[
+                wicks_double_vac(
+                    arg,
+                    expand=expand,
+                    keep_only_fully_contracted=keep_only_fully_contracted,
+                    **kwargs,
+                )
+                for arg in expr.args
+            ]
+        )
 
     elif isinstance(expr, Mul):
 
@@ -445,7 +416,7 @@ def wicks_double_vac(expr, **kw_args):
             ans = expr
 
         elif n == 1:
-            if opts["keep_only_fully_contracted"]:
+            if keep_only_fully_contracted:
                 return S.Zero
             else:
                 ans = expr
@@ -454,11 +425,11 @@ def wicks_double_vac(expr, **kw_args):
             # Finding all contractions
             ans = _get_contractions_double_vac(
                 string,
-                keep_only_fully_contracted=opts["keep_only_fully_contracted"],
+                keep_only_fully_contracted=keep_only_fully_contracted,
             )
             ans = Mul(*com_part, *NO_part) * ans
 
-        if opts["expand"]:
+        if expand:
             ans = ans.expand()
         if opts["simplify_kronecker_deltas"]:
             ans = evaluate_deltas_double_vac(ans)
@@ -476,7 +447,7 @@ def get_fully_contracted(expr):
     Leaves only fully contracted terms in a normal ordered expression.
     """
 
-    expr = expand(expr)
+    expr = sy_expand(expr)
 
     if isinstance(expr, Add):
         return Add(*[get_fully_contracted(term) for term in expr.args])
@@ -647,6 +618,6 @@ def commutator(A, B):
     """
 
     comm = A * B - B * A
-    comm = expand(comm)
+    comm = sy_expand(comm)
 
     return comm

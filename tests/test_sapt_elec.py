@@ -1,9 +1,6 @@
-import pytest
-
 from sympy import symbols, Dummy, latex
 
 from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
     ad,
     a,
     bd,
@@ -11,7 +8,8 @@ from sym2quantized_sapt.double_fermi_vac import (
     wicks_double_vac,
 )
 
-from sym2quantized_sapt import spin_integration
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
 def test_can_evaluate_sapt_pol_10_energy():
@@ -21,13 +19,13 @@ def test_can_evaluate_sapt_pol_10_energy():
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-    v = TensorDoubleVac(
+    v = DoubleVacuumTensorSymbol(
         "v",
         (p, r),
         (q, s),
     )
-    vA = TensorDoubleVac("(v_A)", (r,), (s,))
-    vB = TensorDoubleVac("(v_B)", (p,), (q,))
+    vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+    vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
     V0 = symbols("V_0")
 
     V = (

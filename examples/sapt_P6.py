@@ -3,17 +3,16 @@ import time
 from sympy import symbols, Dummy, latex
 
 from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
     ad,
     a,
     bd,
     b,
     wicks_double_vac,
-    get_fully_contracted,
-    spin_integration,
 )
 
 from sym2quantized_sapt.diagrams import get_only_linked
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
 def lprint_args(expresion):
@@ -40,7 +39,7 @@ def get_V_operator():
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-    v = TensorDoubleVac(
+    v = DoubleVacuumTensorSymbol(
         "v",
         (
             p,
@@ -51,9 +50,9 @@ def get_V_operator():
             s,
         ),
     )
-    vA = TensorDoubleVac("(v_A)", (r,), (s,))
-    vB = TensorDoubleVac("(v_B)", (p,), (q,))
-    V0 = TensorDoubleVac("V_0", (), ())
+    vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+    vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
+    V0 = DoubleVacuumTensorSymbol("V_0", (), ())
 
     V = (
         v * ad(q) * a(p) * bd(s) * b(r)
@@ -76,12 +75,12 @@ def get_P6_operator():
     P_tensor = (
         -1
         / 9
-        * TensorDoubleVac("s", (r,), (q,))
-        * TensorDoubleVac("s", (r1,), (q1,))
-        * TensorDoubleVac("s", (r2,), (q2,))
-        * TensorDoubleVac("s", (p,), (s,))
-        * TensorDoubleVac("s", (p1,), (s1,))
-        * TensorDoubleVac("s", (p2,), (s2,))
+        * DoubleVacuumTensorSymbol("s", (r,), (q,))
+        * DoubleVacuumTensorSymbol("s", (r1,), (q1,))
+        * DoubleVacuumTensorSymbol("s", (r2,), (q2,))
+        * DoubleVacuumTensorSymbol("s", (p,), (s,))
+        * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
+        * DoubleVacuumTensorSymbol("s", (p2,), (s2,))
     )
 
     a_part = ad(q) * ad(q1) * ad(q2) * a(p2) * a(p1) * a(p)
@@ -101,9 +100,6 @@ expr = V * P6
 
 print("Calculating Wicks theorem form...")
 expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
-
-print("Getting only contracted terms...")
-expr = get_fully_contracted(expr)
 
 print("Spin integrating....")
 expr = spin_integration(expr)

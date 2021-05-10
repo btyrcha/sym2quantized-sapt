@@ -14,20 +14,20 @@ results", The Journal of chemical physics 100 (2), 1312 (1994).
 # 0.5 x - 1.0 x = -0.5 x
 # are not simplified.
 
-from sympy import symbols, Dummy, latex, expand
-from sympy.physics.secondquant import Dagger
+from sympy import symbols, Dummy, latex
+from sympy import expand as sy_expand
 from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
     ad,
     a,
     bd,
     b,
     wicks_double_vac,
-    substitute_dummies_double_vac,
-    get_fully_contracted,
-    spin_integration,
     commutator,
 )
+
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
+from sym2quantized_sapt.diagrams import get_only_linked
 
 
 def lprint(expresion):
@@ -54,7 +54,7 @@ b1, b2 = symbols("b b_1", is_molB=True, above_fermi=True, cls=Dummy)
 j1, j2 = symbols("j j_1", is_molB=True, below_fermi=True, cls=Dummy)
 
 
-v = TensorDoubleVac(
+v = DoubleVacuumTensorSymbol(
     "v",
     (
         q,
@@ -65,9 +65,9 @@ v = TensorDoubleVac(
         r,
     ),
 )
-vA = TensorDoubleVac("(v_A)", (s,), (r,))
-vB = TensorDoubleVac("(v_B)", (q,), (p,))
-V0 = TensorDoubleVac("V_0", (), ())
+vA = DoubleVacuumTensorSymbol("(v_A)", (s,), (r,))
+vB = DoubleVacuumTensorSymbol("(v_B)", (q,), (p,))
+V0 = DoubleVacuumTensorSymbol("V_0", (), ())
 
 V_dagger = (
     v * ad(p) * a(q) * bd(r) * b(s)
@@ -77,12 +77,16 @@ V_dagger = (
 )
 
 
-V10_dash_dagger = TensorDoubleVac("o_B", (a2,), (i2,)) * ad(i2) * a(a2)
+V10_dash_dagger = (
+    DoubleVacuumTensorSymbol("o_B", (a2,), (i2,)) * ad(i2) * a(a2)
+)
 
-V01_dash_dagger = TensorDoubleVac("o_A", (b2,), (j2,)) * bd(j2) * b(b2)
+V01_dash_dagger = (
+    DoubleVacuumTensorSymbol("o_A", (b2,), (j2,)) * bd(j2) * b(b2)
+)
 
 V11_dash_dagger = (
-    TensorDoubleVac(
+    DoubleVacuumTensorSymbol(
         "v",
         (
             a2,
@@ -103,8 +107,8 @@ V_dash_dagger = V10_dash_dagger + V01_dash_dagger + V11_dash_dagger
 
 
 P = (
-    -TensorDoubleVac("s", (r1,), (q1,))
-    * TensorDoubleVac("s", (p1,), (s1,))
+    -DoubleVacuumTensorSymbol("s", (r1,), (q1,))
+    * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
     * ad(q1)
     * a(p1)
     * bd(s1)
@@ -113,22 +117,22 @@ P = (
 
 
 P10_dash = (
-    -TensorDoubleVac("s", (j1,), (a1,))
-    * TensorDoubleVac("s", (i1,), (j1,))
+    -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
+    * DoubleVacuumTensorSymbol("s", (i1,), (j1,))
     * ad(a1)
     * a(i1)
 )
 
 P01_dash = (
-    -TensorDoubleVac("s", (j1,), (i1,))
-    * TensorDoubleVac("s", (i1,), (b1,))
+    -DoubleVacuumTensorSymbol("s", (j1,), (i1,))
+    * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
     * bd(b1)
     * b(j1)
 )
 
 P11_dash = (
-    -TensorDoubleVac("s", (j1,), (a1,))
-    * TensorDoubleVac("s", (i1,), (b1,))
+    -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
+    * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
     * ad(a1)
     * a(i1)
     * bd(b1)
@@ -141,7 +145,7 @@ P_dash = P10_dash + P01_dash + P11_dash
 T20_part1 = (
     1
     / 4
-    * TensorDoubleVac(
+    * DoubleVacuumTensorSymbol(
         "t",
         (
             i3,
@@ -161,7 +165,7 @@ T20_part1 = (
 T20_part2 = (
     -1
     / 4
-    * TensorDoubleVac(
+    * DoubleVacuumTensorSymbol(
         "t",
         (
             i4,
@@ -183,7 +187,7 @@ T20 = T20_part1 + T20_part2
 T20_part1_dagger = (
     1
     / 4
-    * TensorDoubleVac(
+    * DoubleVacuumTensorSymbol(
         "t",
         (
             a3,
@@ -203,7 +207,7 @@ T20_part1_dagger = (
 T20_part2_dagger = (
     -1
     / 4
-    * TensorDoubleVac(
+    * DoubleVacuumTensorSymbol(
         "t",
         (
             a3,
@@ -229,8 +233,10 @@ expr = (
     V_dash_dagger * commutator(P, T20)
     - commutator(V_dagger, T20_dagger) * P_dash
 )  # [A, B]^\dagger = -[A^\dagger, B^\dagger]
-expr = expand(expr)
-expr = wicks_double_vac(expr, simplify_kronecker_deltas=True)
+expr = sy_expand(expr)
+expr = wicks_double_vac(
+    expr, simplify_kronecker_deltas=True, keep_only_fully_contracted=True
+)
 expr = get_fully_contracted(expr)
 expr = spin_integration(expr)
 

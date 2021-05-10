@@ -3,7 +3,6 @@ import pytest
 from sympy import symbols, Dummy, latex
 
 from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
     ad,
     a,
     bd,
@@ -11,7 +10,8 @@ from sym2quantized_sapt.double_fermi_vac import (
     wicks_double_vac,
 )
 
-from sym2quantized_sapt import spin_integration
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
 def test_can_evaluate_sapt_exch_10_energy():
@@ -28,13 +28,13 @@ def test_can_evaluate_sapt_exch_10_energy():
     b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
     j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-    v = TensorDoubleVac(
+    v = DoubleVacuumTensorSymbol(
         "v",
         (p, r),
         (q, s),
     )
-    vA = TensorDoubleVac("(v_A)", (r,), (s,))
-    vB = TensorDoubleVac("(v_B)", (p,), (q,))
+    vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+    vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
     V0 = symbols("V_0")
 
     V = (
@@ -45,22 +45,22 @@ def test_can_evaluate_sapt_exch_10_energy():
     )
 
     P10 = (
-        -TensorDoubleVac("s", (j1,), (a1,))
-        * TensorDoubleVac("s", (i1,), (j1,))
+        -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
+        * DoubleVacuumTensorSymbol("s", (i1,), (j1,))
         * ad(a1)
         * a(i1)
     )
 
     P01 = (
-        -TensorDoubleVac("s", (j1,), (i1,))
-        * TensorDoubleVac("s", (i1,), (b1,))
+        -DoubleVacuumTensorSymbol("s", (j1,), (i1,))
+        * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
         * bd(b1)
         * b(j1)
     )
 
     P11 = (
-        -TensorDoubleVac("s", (j1,), (a1,))
-        * TensorDoubleVac("s", (i1,), (b1,))
+        -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
+        * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
         * ad(a1)
         * a(i1)
         * bd(b1)

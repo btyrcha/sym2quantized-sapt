@@ -2,21 +2,11 @@
 This is a test example - it probably does not give a correct answer.
 """
 
-from sympy import symbols, Dummy, latex, expand
+from sympy import symbols, Dummy, latex
 
-from sympy.physics.secondquant import Dagger
-
-from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
-    ad,
-    a,
-    bd,
-    b,
-    commutator,
-    wicks_double_vac,
-    get_fully_contracted,
-    spin_integration,
-)
+from sym2quantized_sapt.double_fermi_vac import ad, a, bd, b, wicks_double_vac
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
 def lprint(expresion):
@@ -38,7 +28,7 @@ i1, i2 = symbols("i i_1", is_molA=True, below_fermi=True, cls=Dummy)
 b1, b2 = symbols("b b_1", is_molB=True, above_fermi=True, cls=Dummy)
 j1, j2 = symbols("j j_1", is_molB=True, below_fermi=True, cls=Dummy)
 
-v = TensorDoubleVac(
+v = DoubleVacuumTensorSymbol(
     "v",
     (
         p,
@@ -49,8 +39,8 @@ v = TensorDoubleVac(
         s,
     ),
 )
-vA = TensorDoubleVac("(v_A)", (r,), (s,))
-vB = TensorDoubleVac("(v_B)", (p,), (q,))
+vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
 V0 = symbols("V_0")
 
 V = (
@@ -61,8 +51,8 @@ V = (
 )
 
 P = (
-    -TensorDoubleVac("s", (r1,), (q1,))
-    * TensorDoubleVac("s", (p1,), (s1,))
+    -DoubleVacuumTensorSymbol("s", (r1,), (q1,))
+    * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
     * ad(q1)
     * a(p1)
     * bd(s1)
@@ -70,14 +60,15 @@ P = (
 )
 
 T10 = (
-    TensorDoubleVac("o_B", (i2,), (a2,))
-    / TensorDoubleVac("e", (a2,), (i2,))
+    DoubleVacuumTensorSymbol("o_B", (i2,), (a2,))
+    / DoubleVacuumTensorSymbol("e", (a2,), (i2,))
     * ad(a2)
     * a(i2)
 )
 
 E_exch_ind200_A = V * P * T10
-E_exch_ind200_A = wicks_double_vac(E_exch_ind200_A)
-E_exch_ind200_A = get_fully_contracted(E_exch_ind200_A)
+E_exch_ind200_A = wicks_double_vac(
+    E_exch_ind200_A, keep_only_fully_contracted=True
+)
 E_exch_ind200_A = spin_integration(E_exch_ind200_A)
 print(latex(E_exch_ind200_A))

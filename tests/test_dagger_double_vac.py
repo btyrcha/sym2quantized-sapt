@@ -5,12 +5,12 @@ from sympy import symbols, Dummy, latex
 from sympy.physics.secondquant import Dagger
 
 from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
     ad,
     a,
     bd,
     b,
 )
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
 def test_can_evaluate_simple_dagger_molA():
@@ -78,7 +78,17 @@ def test_can_evaluate_tensor_dagger():
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-    v = TensorDoubleVac("v", (p, r,), (q, s,))
+    v = DoubleVacuumTensorSymbol(
+        "v",
+        (
+            p,
+            r,
+        ),
+        (
+            q,
+            s,
+        ),
+    )
 
     expr = Dagger(v)
     tested_expr = latex(expr)
@@ -93,7 +103,17 @@ def test_can_evaluate_mixed_dagger():
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-    v = TensorDoubleVac("v", (p, r,), (q, s,))
+    v = DoubleVacuumTensorSymbol(
+        "v",
+        (
+            p,
+            r,
+        ),
+        (
+            q,
+            s,
+        ),
+    )
 
     expr = v * ad(q) * a(p) * bd(s) * b(r)
     expr = Dagger(expr)

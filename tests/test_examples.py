@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import shutil
@@ -70,9 +71,15 @@ def test_run_example(example_file: pathlib.Path, tmp_path: pathlib.Path):
     # copy the file to tmp_path
     shutil.copyfile(source_file, target_file)
 
-    # run as a subprocess call
-    completed_run = subprocess.run(
-        ["python3", target_file], stdout=subprocess.PIPE, check=True
-    )
-    # assert script didn't crash
-    completed_run.check_returncode()
+    try:
+        # run as a subprocess call
+        completed_run = subprocess.run(
+            ["python3", target_file], stdout=subprocess.PIPE, check=True
+        )
+        # assert script didn't crash
+        completed_run.check_returncode()
+
+    except Exception as err:
+        # TODO: capture stdout of .run and log it here
+        logging.exception(err)
+        raise err

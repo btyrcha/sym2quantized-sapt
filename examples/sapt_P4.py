@@ -5,15 +5,15 @@ from sympy import symbols, Dummy
 from sympy.core import Expr
 
 from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
     ad,
     a,
     bd,
     b,
     wicks_double_vac,
-    spin_integration,
 )
 
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 from sym2quantized_sapt.diagrams import get_only_linked
 from sym2quantized_sapt.utils import timeit, format_expr
 
@@ -27,7 +27,7 @@ def get_V_operator() -> Expr:
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-    v = TensorDoubleVac(
+    v = DoubleVacuumTensorSymbol(
         "v",
         (
             p,
@@ -38,9 +38,9 @@ def get_V_operator() -> Expr:
             s,
         ),
     )
-    vA = TensorDoubleVac("(v_A)", (r,), (s,))
-    vB = TensorDoubleVac("(v_B)", (p,), (q,))
-    V0 = TensorDoubleVac("V_0", (), ())
+    vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+    vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
+    V0 = DoubleVacuumTensorSymbol("V_0", (), ())
 
     V = (
         v * ad(q) * a(p) * bd(s) * b(r)
@@ -63,10 +63,10 @@ def get_P4_operator() -> Expr:
 
     P_tensor = (
         0.25
-        * TensorDoubleVac("s", (r1,), (q1,))
-        * TensorDoubleVac("s", (r2,), (q2,))
-        * TensorDoubleVac("s", (p1,), (s1,))
-        * TensorDoubleVac("s", (p2,), (s2,))
+        * DoubleVacuumTensorSymbol("s", (r1,), (q1,))
+        * DoubleVacuumTensorSymbol("s", (r2,), (q2,))
+        * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
+        * DoubleVacuumTensorSymbol("s", (p2,), (s2,))
     )
 
     a_part = ad(q1) * ad(q2) * a(p2) * a(p1)

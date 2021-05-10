@@ -1,17 +1,17 @@
 from sympy import symbols, Dummy, latex
 
 from sym2quantized_sapt.double_fermi_vac import (
-    TensorDoubleVac,
     ad,
     a,
     bd,
     b,
     wicks_double_vac,
     get_fully_contracted,
-    spin_integration,
 )
 
 from sym2quantized_sapt.diagrams import get_only_linked
+from sym2quantized_sapt.spin_integrator import spin_integration
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
 def lprint_args(expresion):
@@ -23,7 +23,7 @@ def lprint_args(expresion):
 p, q = symbols("p q", is_molA=True, cls=Dummy)
 r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-v = TensorDoubleVac(
+v = DoubleVacuumTensorSymbol(
     "v",
     (
         p,
@@ -34,9 +34,9 @@ v = TensorDoubleVac(
         s,
     ),
 )
-vA = TensorDoubleVac("(v_A)", (r,), (s,))
-vB = TensorDoubleVac("(v_B)", (p,), (q,))
-V0 = TensorDoubleVac("V_0", (), ())
+vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
+V0 = DoubleVacuumTensorSymbol("V_0", (), ())
 
 V = (
     v * ad(q) * a(p) * bd(s) * b(r)
@@ -50,8 +50,8 @@ p1, q1 = symbols("p q", is_molA=True, cls=Dummy)
 r1, s1 = symbols("r s", is_molB=True, cls=Dummy)
 
 P = (
-    -TensorDoubleVac("s", (r1,), (q1,))
-    * TensorDoubleVac("s", (p1,), (s1,))
+    -DoubleVacuumTensorSymbol("s", (r1,), (q1,))
+    * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
     * ad(q1)
     * a(p1)
     * bd(s1)
