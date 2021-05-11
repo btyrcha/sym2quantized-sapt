@@ -1,134 +1,30 @@
 from sympy.physics.secondquant import (
-    FockStateFermionKet,
-    FockStateFermionBra,
     AnnihilateFermion,
     CreateFermion,
-    AntiSymmetricTensor,
-    apply_operators,
+    TensorSymbol,
     NO,
-    wicks,
     contraction,
-    evaluate_deltas,
+    _get_ordered_dummies,
 )
+
 from sympy import (
     S,
-    Symbol,
-    symbols,
+    Tuple,
     Add,
     Mul,
     KroneckerDelta,
     Dummy,
     sympify,
-    expand,
-    pretty_print,
-    latex,
 )
+from sympy import expand as sy_expand
 
-
-class DoubleFermiVaccum:
-
-    is_molA = False
-    is_molB = False
-
-
-class AnnihilateFermion_A(AnnihilateFermion, DoubleFermiVaccum):
-    """
-    Fermionic annihilation operator coresponding
-    to molecule A (part A of a complex/dimer).
-
-    Allows distinguishing creation and annihiltaion
-    operators corresponding to A or B part of the complex/
-    /dimer.
-
-    """
-
-    is_molA = True
-
-    op_symbol = "a"
-
-    def _dagger_(self):
-        return CreateFermion_A(*self.state)
-
-    def __repr__(self):
-        return "AnnihilateFermion_A(%s)" % self.state
-
-    def _latex(self, printer):
-        return "a_{%s}" % self.state.name
-
-
-class CreateFermion_A(CreateFermion, DoubleFermiVaccum):
-    """
-    Fermionic creation operator coresponding
-    to molecule A.
-
-    See also AnnihilateFermion_A.
-
-    """
-
-    is_molA = True
-
-    op_symbol = "a+"
-
-    def _dagger_(self):
-        return AnnihilateFermion_A(*self.state)
-
-    def __repr__(self):
-        return "CreateFermion_A(%s)" % self.state
-
-    def _latex(self, printer):
-        return "a^\\dagger_{%s}" % self.state.name
-
-
-class AnnihilateFermion_B(AnnihilateFermion, DoubleFermiVaccum):
-    """
-    Fermionic annihilation operator coresponding
-    to molecule B.
-
-    See also AnnihilateFermion_A.
-
-    """
-
-    is_molB = True
-
-    op_symbol = "b"
-
-    def _dagger_(self):
-        return CreateFermion_A(*self.state)
-
-    def __repr__(self):
-        return "AnnihilateFermion_B(%s)" % self.state
-
-    def _latex(self, printer):
-        return "b_{%s}" % self.state.name
-
-
-class CreateFermion_B(CreateFermion, DoubleFermiVaccum):
-    """
-    Fermionic creation operator coresponding
-    to molecule B.
-
-    See also AnnihilateFermion_A.
-
-    """
-
-    is_molB = True
-
-    op_symbol = "b+"
-
-    def _dagger_(self):
-        return AnnihilateFermion_B(*self.state)
-
-    def __repr__(self):
-        return "CreateFermion_B(%s)" % self.state
-
-    def _latex(self, printer):
-        return "b^\\dagger_{%s}" % self.state.name
-
-
-a = AnnihilateFermion_A
-ad = CreateFermion_A
-b = AnnihilateFermion_B
-bd = CreateFermion_B
+from .operators import (
+    AnnihilateFermion_A,
+    AnnihilateFermion_B,
+    CreateFermion_A,
+    CreateFermion_B,
+    DoubleFermiVaccum,
+)
 
 
 class NO_double_vac:
@@ -137,17 +33,16 @@ class NO_double_vac:
 
     Assumes arg consits only is_molA, is_molB or commuting
     parts.
-
     """
 
     def __new__(cls, arg):
 
         arg = sympify(arg)
         arg = arg.expand()
-        if arg.is_Add:
+        if isinstance(arg, Add):
             return Add(*[NO_double_vac(elem) for elem in arg.args])
 
-        elif arg.is_Mul:
+        elif isinstance(arg, Mul):
 
             # separating coefficient from arg
             comuting_part, seq = arg.args_cnc()
@@ -158,20 +53,24 @@ class NO_double_vac:
             else:
                 coeff = S.One
 
+            # Some terms in the sequence may be already normaly ordered
+            ordered = []
             part_A = []
             part_B = []
             for elem in seq:
-                if elem.is_molA:
+                if isinstance(elem, NO):
+                    ordered.append(elem)
+                elif elem.is_molA:
                     part_A.append(elem)
                 elif elem.is_molB:
                     part_B.append(elem)
-                # elem neither is_molA, is_molB nor commuting
+                # elem neither is_molA, is_molB, NO nor commuting
                 else:
                     print("Something went wrong:")
                     print(elem, "coresponds to neither molecule A nor B!")
 
             # apply normal ordering brackets to parts A and B separately
-            return coeff * NO(Mul(*part_A)) * NO(Mul(*part_B))
+            return coeff * NO(Mul(*part_A)) * NO(Mul(*part_B)) * Mul(*ordered)
 
         # arg is neither Add nor Mul
         else:
@@ -182,15 +81,73 @@ def contraction_double_vac(X, Y):
     """
     Calculates contraction for operators corresponding
     to either molecule A or molecule B.
-
     """
+
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
 
-        if X.is_molA and Y.is_molA:
-            return contraction(X, Y)
+        if isinstance(X, AnnihilateFermion_A) and isinstance(
+            Y, CreateFermion_A
+        ):
+            if Y.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
 
-        elif X.is_molB and Y.is_molB:
-            return contraction(X, Y)
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("a", is_molA=True, above_fermi=True)
+            )
+
+        if isinstance(X, CreateFermion_A) and isinstance(
+            Y, AnnihilateFermion_A
+        ):
+            if Y.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("i", is_molA=True, below_fermi=True)
+            )
+
+        if isinstance(X, AnnihilateFermion_B) and isinstance(
+            Y, CreateFermion_B
+        ):
+            if Y.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("below_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("above_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("b", is_molB=True, above_fermi=True)
+            )
+
+        if isinstance(X, CreateFermion_B) and isinstance(
+            Y, AnnihilateFermion_B
+        ):
+            if Y.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if X.state.assumptions0.get("above_fermi"):
+                return S.Zero
+            if Y.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+            if X.state.assumptions0.get("below_fermi"):
+                return KroneckerDelta(X.state, Y.state)
+
+            return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
+                Y.state, Dummy("j", is_molB=True, below_fermi=True)
+            )
 
         else:
             return S.Zero
@@ -207,9 +164,9 @@ def evaluate_deltas_double_vac(expr):
     Substiution are evaluated for double Fermi vaccum case. Therefore indicies
     in KronecerDelta should have an assumptions:
     - is_molA=True if this index applies only to part A of the complex,
-    - is_molB=True if this index applies only to part A of the complex.
-
+    - is_molB=True if this index applies only to part B of the complex.
     """
+
     if isinstance(expr, Add):
         return Add(*[evaluate_deltas_double_vac(arg) for arg in expr.args])
 
@@ -268,36 +225,305 @@ def evaluate_deltas_double_vac(expr):
         return expr
 
 
-if __name__ == "__main__":
-    # Some debugs and checks (will be deleted in final version).
-    # There is a plan to add some example files instead.
+def _get_contractions_double_vac(string, keep_only_fully_contracted=False):
+    """
+    Finds all posible contractions for given
+    touple of fermionic operators. Returns Add object.
 
-    p, q = symbols("p q", is_molA=True, cls=Dummy)
-    r, s = symbols("r s", is_molB=True, cls=Dummy)
+    Helper function.
+    """
 
-    v = AntiSymmetricTensor("v", (p, r,), (q, s,))
-    vA = AntiSymmetricTensor("(v_A)", (r,), (s,))
-    vB = AntiSymmetricTensor("(v_B)", (p,), (q,))
-    V0 = symbols("V_0")
+    if keep_only_fully_contracted:
+        result = []
+    else:
+        result = [NO_double_vac(Mul(*string))]
 
-    V = (
-        v * ad(q) * a(p) * bd(s) * b(r)
-        + vA * bd(s) * b(r)
-        + vB * ad(p) * a(q)
-        + V0
-    )
+    for i in range(len(string) - 1):
+        for j in range(i + 1, len(string)):
 
-    expr = NO_double_vac(V)
-    print(latex(expr))
-    print()
+            c = contraction_double_vac(string[i], string[j])
 
-    a1, a2 = symbols("a1 a2", is_molA=True, above_fermi=True, cls=Dummy)
-    i1, i2 = symbols("i1 i2", is_molA=True, below_fermi=True, cls=Dummy)
+            if c:
+                signchange = (j - i + 1) % 2
+                if signchange:
+                    coeff = S.NegativeOne * c
+                else:
+                    coeff = c
 
-    b1, b2 = symbols("b1 b2", is_molB=True, above_fermi=True, cls=Dummy)
-    j1, j2 = symbols("j1 j2", is_molB=True, below_fermi=True, cls=Dummy)
+                # Operators posible for next level recursion
+                string_next_level = string[i + 1 : j] + string[j + 1 :]
 
-    expr = ad(p) * a(q) * KroneckerDelta(p, q)
-    expr = evaluate_deltas_double_vac(expr)
-    print(latex(expr))
-    print()
+                if string_next_level:
+                    result.append(
+                        coeff
+                        * NO_double_vac(
+                            Mul(*string[:i])
+                            * _get_contractions_double_vac(
+                                string_next_level,
+                                keep_only_fully_contracted=keep_only_fully_contracted,
+                            )
+                        )
+                    )
+
+                else:
+                    result.append(coeff * NO_double_vac(Mul(*string[:i])))
+
+        if keep_only_fully_contracted:
+            break
+
+    return Add(*result)
+
+
+def wicks_double_vac(
+    expr, expand=True, keep_only_fully_contracted=False, **kwargs
+):
+    """
+    Returns Wicks Theorem expansion of a given expresion.
+    """
+    opts = {
+        "simplify_kronecker_deltas": True,
+        "substitute_dummies": True,
+    }
+    opts.update(kwargs)
+
+    expr = sy_expand(expr)
+
+    if isinstance(expr, Add):
+        return Add(
+            *[
+                wicks_double_vac(
+                    arg,
+                    expand=expand,
+                    keep_only_fully_contracted=keep_only_fully_contracted,
+                    **kwargs,
+                )
+                for arg in expr.args
+            ]
+        )
+
+    elif isinstance(expr, Mul):
+
+        # Commuting and not-commuting parts
+        com_part = []
+        NO_part = []
+        string = []
+        for elem in expr.args:
+            if elem.is_commutative:
+                com_part.append(elem)
+            elif isinstance(elem, NO):
+                NO_part.append(elem)
+            else:
+                string.append(elem)
+
+        string = tuple(string)
+        n = len(string)
+
+        if n == 0:
+            ans = expr
+
+        elif n == 1:
+            if keep_only_fully_contracted:
+                return S.Zero
+            else:
+                ans = expr
+
+        else:
+            # Finding all contractions
+            ans = _get_contractions_double_vac(
+                string,
+                keep_only_fully_contracted=keep_only_fully_contracted,
+            )
+            ans = Mul(*com_part, *NO_part) * ans
+
+        if expand:
+            ans = ans.expand()
+        if opts["simplify_kronecker_deltas"]:
+            ans = evaluate_deltas_double_vac(ans)
+        if opts["substitute_dummies"]:
+            ans = substitute_dummies_double_vac(ans)
+
+        return ans
+
+    else:
+        return expr
+
+
+def get_fully_contracted(expr):
+    """
+    Leaves only fully contracted terms in a normal ordered expression.
+    """
+
+    expr = sy_expand(expr)
+
+    if isinstance(expr, Add):
+        return Add(*[get_fully_contracted(term) for term in expr.args])
+
+    elif isinstance(expr, Mul):
+
+        is_contr = True
+        for term in expr.args:
+            if (
+                isinstance(term, NO)
+                or isinstance(term, AnnihilateFermion)
+                or isinstance(term, CreateFermion)
+            ):
+                is_contr = False
+                break
+
+        if is_contr:
+            return expr
+        else:
+            return S.Zero
+
+    else:
+        return expr
+
+
+def substitute_dummies_double_vac(expr):
+    """
+    Substiutute Dummy indicies systematicaly across the expresion
+    making it posible to idenify terms that only differ due to index names.
+
+    Always creates new Dummy indicies with the following manner:
+    a, a_1, a_2, ... - particle indicies of molecule A,
+    b, b_1, b_2, ... - particle indicies of molecule B,
+    i, i_1, i_2, ... - hole indicies of molecule A,
+    j, j_1, j_2, ... - hole indicies of molecule B,
+    p, p_1, p_2, ... - general idnicies of molecule A,
+    q, q_1, q_2, ... - general idnicies of molecule B.
+    """
+
+    molA_aboves = []
+    molA_belows = []
+    molA_generals = []
+
+    molB_aboves = []
+    molB_belows = []
+    molB_generals = []
+
+    dummies = expr.atoms(Dummy)
+    a = b = i = j = p = q = 0
+    for elem in dummies:
+        assum = elem.assumptions0
+
+        if assum.get("is_molA"):
+
+            if assum.get("above_fermi"):
+                if a == 0:
+                    index = Dummy("a", **assum)
+                else:
+                    index = Dummy("a_{0}".format(a), **assum)
+                molA_aboves.append(index)
+                a += 1
+
+            elif assum.get("below_fermi"):
+                if i == 0:
+                    index = Dummy("i", **assum)
+                else:
+                    index = Dummy("i_{0}".format(i), **assum)
+                molA_belows.append(index)
+                i += 1
+
+            else:
+                if p == 0:
+                    index = Dummy("p", **assum)
+                else:
+                    index = Dummy("p_{0}".format(p), **assum)
+                molA_generals.append(index)
+                p += 1
+
+        if assum.get("is_molB"):
+
+            if assum.get("above_fermi"):
+                if b == 0:
+                    index = Dummy("b", **assum)
+                else:
+                    index = Dummy("b_{0}".format(b), **assum)
+                molB_aboves.append(index)
+                b += 1
+
+            elif assum.get("below_fermi"):
+                if j == 0:
+                    index = Dummy("j", **assum)
+                else:
+                    index = Dummy("j_{0}".format(j), **assum)
+                molB_belows.append(index)
+                j += 1
+
+            else:
+                if q == 0:
+                    index = Dummy("q", **assum)
+                else:
+                    index = Dummy("q_{0}".format(q), **assum)
+                molB_generals.append(index)
+                q += 1
+
+    expr = expr.expand()
+    terms = Add.make_args(expr)
+    new_terms = []
+    for term in terms:
+        ordered = _get_ordered_dummies(term)
+
+        a = iter(molA_aboves)
+        i = iter(molA_belows)
+        p = iter(molA_generals)
+
+        b = iter(molB_aboves)
+        j = iter(molB_belows)
+        q = iter(molB_generals)
+
+        subsdict = {}
+        for d in ordered:
+            assum = d.assumptions0
+
+            if assum.get("is_molA"):
+                if assum.get("above_fermi"):
+                    subsdict[d] = next(a)
+                elif assum.get("below_fermi"):
+                    subsdict[d] = next(i)
+                else:
+                    subsdict[d] = next(p)
+
+            if assum.get("is_molB"):
+                if assum.get("above_fermi"):
+                    subsdict[d] = next(b)
+                elif assum.get("below_fermi"):
+                    subsdict[d] = next(j)
+                else:
+                    subsdict[d] = next(q)
+
+        subslist = []
+        final_subs = []
+        for k, v in subsdict.items():
+            if k == v:
+                continue
+            if v in subsdict:
+                # We check if the sequence of substitutions end quickly.  In
+                # that case, we can avoid temporary symbols if we ensure the
+                # correct substitution order.
+                if subsdict[v] in subsdict:
+                    # (x, y) -> (y, x),  we need a temporary variable
+                    x = Dummy("x")
+                    subslist.append((k, x))
+                    final_subs.append((x, v))
+                else:
+                    # (x, y) -> (y, a),  x->y must be done last
+                    # but before temporary variables are resolved
+                    final_subs.insert(0, (k, v))
+            else:
+                subslist.append((k, v))
+        subslist.extend(final_subs)
+        new_terms.append(term.subs(subslist))
+
+    return Add(*new_terms)
+
+
+def commutator(A, B):
+    """
+    Commutator of two operators A and B.
+    """
+
+    comm = A * B - B * A
+    comm = sy_expand(comm)
+
+    return comm

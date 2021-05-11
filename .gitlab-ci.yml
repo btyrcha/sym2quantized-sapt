@@ -1,0 +1,105 @@
+# must bee inside the project directory since we can
+# only cache local items.
+variables:
+  CCACHE_DIR: "$CI_PROJECT_DIR/.ccache"
+
+stages:
+  - pre-build
+  - build
+  - test
+  - publish
+
+default:
+  tags:
+    - main
+
+workflow:
+  rules:
+    # For merge requests, create a pipeline.
+    - if: "$CI_MERGE_REQUEST_IID"
+    # For `master` branch, create a pipeline (this includes on schedules, pushes, merges, etc.).
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    # For `developer` branch, create a pipeline (this includes on schedules, pushes, merges, etc.).
+    - if: '$CI_COMMIT_BRANCH == "developer"'
+    # For tags, create a pipeline.
+    - if: "$CI_COMMIT_TAG"
+    # For stable, auto-deploy, and security branches, create a pipeline.
+    - if: '$CI_COMMIT_BRANCH =~ /^[\d-]+-stable(-ee)?$/'
+    - if: '$CI_COMMIT_BRANCH =~ /^\d+-\d+-auto-deploy-\d+$/'
+
+python-3.8.10-build:
+  image:
+    name: python:3.8.10-slim-buster
+  stage: build
+  before_script:
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install -r requirements.txt
+  script:
+    - python3 -m pip install -e . --no-use-pep517
+  tags: [docker, linux]
+  cache:
+    policy: pull-push
+
+# format check step
+format-check:
+  image:
+    name: python:3.8.10-slim-buster
+  stage: pre-build
+  before_script:
+    - python3 -m pip install -r requirements_dev.txt --no-cache-dir
+  # non-zero output of --check if something would change
+  script:
+    - python3 -m black --check --diff src/ setup.py
+  tags: [docker, linux]
+
+# pylint check for current MR
+pylint-mr-check:
+  image:
+    name: python:3.8.10-slim-buster
+  stage: pre-build
+  before_script:
+    - python3 -m pip install -r requirements_dev.txt --no-cache-dir
+    - apt-get update && apt-get install -y git
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+  script:
+    - .gitlab/ci/utils/lint_python_changes.sh
+  tags: [docker, linux]
+  allow_failure: False
+
+# pylint check for whole codebase
+pylint-check:
+  image:
+    name: python:3.8.7-slim-buster
+  stage: build
+  before_script:
+    - python3 -m pip install -r requirements_dev.txt --no-cache-dir
+  script:
+    - python3 -m pylint --rcfile=.pylintrc --output-format=text src/ --exit-zero > pylint.out
+    - export score=$(sed -n 's/^Your code has been rated at \([-0-9.]*\)\/.*/\1/p' pylint.out)
+    - echo "Pylint score was $score"
+    # TODO: export badge as artifact
+    #- python3 -m anybadge --value=$score --file=pylint.svg --linter pylint
+  tags: [docker, linux]
+  # make failure non-blocking for now
+  allow_failure: True
+
+# test job for python3 3.8.10
+python-3.8.10-test:
+  image:
+    name: python:3.8.10-slim-buster
+  stage: test
+  before_script:
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install -r requirements.txt
+    # add dev dependecies for test-coverage etc.
+    - python3 -m pip install -r requirements_dev.txt
+  script:
+    - python3 -m pip install -e . --no-use-pep517
+    - coverage run -m pytest tests/ --slow
+    - coverage report
+    # ensure all tests were run
+    #- coverage report --fail-under 100 --include tests/*
+  when: on_success
+  tags: [docker, linux]
+  cache:
+    policy: pull
