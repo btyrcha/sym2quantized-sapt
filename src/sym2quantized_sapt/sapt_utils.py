@@ -1,0 +1,123 @@
+from sympy import symbols, Dummy
+from sympy.core import Expr, Mul
+from sym2quantized_sapt.operators import ad, a, bd, b
+from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
+
+
+def get_a_operator(n=1) -> Expr:
+    """
+    Returns exchange operator for n electrons on monomer A in form:
+    a^{p_0 p_1 ... p_n}_{q_0 q_1 ... q_n} =
+        = ad(p_0) ad(p_1) ... ad(p_n) a(q_n) ... a(q_1) a(q_0)
+    """
+
+    upper_indicies = []
+    lower_indicies = []
+    for i in range(n):
+        upper_indicies.append(
+            symbols("p_{0}".format(i), is_molA=True, cls=Dummy)
+        )
+        lower_indicies.append(
+            symbols("q_{0}".format(i), is_molA=True, cls=Dummy)
+        )
+
+    creation_part = [ad(index) for index in upper_indicies]
+    annihilation_part = [a(index) for index in reversed(lower_indicies)]
+    return Mul(*creation_part, *annihilation_part)
+
+
+def get_b_operator(n=1) -> Expr:
+    """
+    Returns exchange operator for n electrons on monomer B in form:
+    b^{r_0 r_1 ... r_n}_{s_0 s_1 ... s_n} =
+        = bd(r_0) bd(r_1) ... bd(r_n) b(s_n) ... b(s_1) b(s_0)
+    """
+    upper_indicies = []
+    lower_indicies = []
+    for i in range(n):
+        upper_indicies.append(
+            symbols("r_{0}".format(i), is_molB=True, cls=Dummy)
+        )
+        lower_indicies.append(
+            symbols("s_{0}".format(i), is_molB=True, cls=Dummy)
+        )
+
+    creation_part = [bd(index) for index in upper_indicies]
+    annihilation_part = [b(index) for index in reversed(lower_indicies)]
+    return Mul(*creation_part, *annihilation_part)
+
+
+def get_V_operator() -> Expr:
+    """prepares intermolecular interaction operator V
+
+    Returns:
+        Expr: SymPy Expr encoding V (dimer interaction operator)
+    """
+    p, q = symbols("p q", is_molA=True, cls=Dummy)
+    r, s = symbols("r s", is_molB=True, cls=Dummy)
+
+    v = DoubleVacuumTensorSymbol(
+        "v",
+        (
+            p,
+            r,
+        ),
+        (
+            q,
+            s,
+        ),
+    )
+    vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
+    vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
+    V0 = DoubleVacuumTensorSymbol("V_0", (), ())
+
+    V = (
+        v * ad(q) * a(p) * bd(s) * b(r)
+        + vA * bd(s) * b(r)
+        + vB * ad(q) * a(p)
+        + V0
+    )
+
+    return V
+
+
+def get_P2_operator() -> Expr:
+    """
+    Prepers permutation operator of one pair of electrons
+    interchanging between monomers A and B.
+    """
+    p, q = symbols("p q", is_molA=True, cls=Dummy)
+    r, s = symbols("r s", is_molB=True, cls=Dummy)
+
+    P2 = (
+        -DoubleVacuumTensorSymbol("s", (r,), (q,))
+        * DoubleVacuumTensorSymbol("s", (p,), (s,))
+        * ad(q)
+        * a(p)
+        * bd(s)
+        * b(r)
+    )
+
+    return P2
+
+
+def get_P4_operator() -> Expr:
+    """
+    Prepers permutation operator of two pairs of electrons
+    interchanging between monomers A and B.
+    """
+    p1, p2, q1, q2 = symbols("p_1 p_2 q_1 q_2", is_molA=True, cls=Dummy)
+    r1, r2, s1, s2 = symbols("r_1 r_2 s_1 s_2", is_molB=True, cls=Dummy)
+
+    P_tensor = (
+        0.25
+        * DoubleVacuumTensorSymbol("s", (r1,), (q1,))
+        * DoubleVacuumTensorSymbol("s", (r2,), (q2,))
+        * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
+        * DoubleVacuumTensorSymbol("s", (p2,), (s2,))
+    )
+
+    a_part = ad(q1) * ad(q2) * a(p2) * a(p1)
+    b_part = bd(s1) * bd(s2) * b(r2) * b(r1)
+
+    return P_tensor * a_part * b_part

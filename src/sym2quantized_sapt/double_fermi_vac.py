@@ -1,7 +1,6 @@
 from sympy.physics.secondquant import (
     AnnihilateFermion,
     CreateFermion,
-    TensorSymbol,
     NO,
     contraction,
     _get_ordered_dummies,
@@ -9,7 +8,6 @@ from sympy.physics.secondquant import (
 
 from sympy import (
     S,
-    Tuple,
     Add,
     Mul,
     KroneckerDelta,
