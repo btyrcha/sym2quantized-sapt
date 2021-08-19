@@ -14,23 +14,13 @@ results", The Journal of chemical physics 100 (2), 1312 (1994).
 # 0.5 x - 1.0 x = -0.5 x
 # are not simplified.
 
-from sympy import symbols, Dummy, latex
+from sympy import symbols, Dummy
 from sympy import expand as sy_expand
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac, commutator
 from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
-from sym2quantized_sapt.diagrams import get_only_linked
-
-
-def lprint(expresion):
-    return print(latex(expresion))
-
-
-def lprint_args(expresion):
-    print(expresion.func)
-    for arg in expresion.args:
-        print(latex(arg))
+from sym2quantized_sapt.utils import format_expr
 
 
 p, p1, q, q1 = symbols("p p_1 q q_1", is_molA=True, cls=Dummy)
@@ -232,4 +222,6 @@ expr = wicks_double_vac(
 )
 expr = spin_integration(expr)
 
-lprint_args(expr)
+
+expr_str = format_expr(expr)
+print(expr_str)
