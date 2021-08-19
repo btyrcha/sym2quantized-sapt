@@ -4,43 +4,62 @@ from sym2quantized_sapt.operators import ad, a, bd, b
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
-def get_a_operator(n=1) -> Expr:
+def get_a_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
     """
     Returns exchange operator for n electrons on monomer A in form:
     a^{p_0 p_1 ... p_n}_{q_0 q_1 ... q_n} =
         = ad(p_0) ad(p_1) ... ad(p_n) a(q_n) ... a(q_1) a(q_0)
+
+    Args:
+        upper_indicies (iterable): list of upper indicies
+        lower_indicies (iterable): list of lower indicies
+        n (int): number of electrons if given ignors upper_indicies and lower_indicies
+
+    Returns:
+        Expr: expression representing operator
     """
 
-    upper_indicies = []
-    lower_indicies = []
-    for i in range(n):
-        upper_indicies.append(
-            symbols("p_{0}".format(i), is_molA=True, cls=Dummy)
-        )
-        lower_indicies.append(
-            symbols("q_{0}".format(i), is_molA=True, cls=Dummy)
-        )
+    if n:
+        upper_indicies = []
+        lower_indicies = []
+        for i in range(n):
+            upper_indicies.append(
+                symbols("p_{0}".format(i), is_molA=True, cls=Dummy)
+            )
+            lower_indicies.append(
+                symbols("q_{0}".format(i), is_molA=True, cls=Dummy)
+            )
 
     creation_part = [ad(index) for index in upper_indicies]
     annihilation_part = [a(index) for index in reversed(lower_indicies)]
     return Mul(*creation_part, *annihilation_part)
 
 
-def get_b_operator(n=1) -> Expr:
+def get_b_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
     """
     Returns exchange operator for n electrons on monomer B in form:
     b^{r_0 r_1 ... r_n}_{s_0 s_1 ... s_n} =
         = bd(r_0) bd(r_1) ... bd(r_n) b(s_n) ... b(s_1) b(s_0)
+
+    Args:
+        upper_indicies (iterable): list of upper indicies
+        lower_indicies (iterable): list of lower indicies
+        n (int): number of electrons if given ignors upper_indicies and lower_indicies
+
+    Returns:
+        Expr: expression representing operator
     """
-    upper_indicies = []
-    lower_indicies = []
-    for i in range(n):
-        upper_indicies.append(
-            symbols("r_{0}".format(i), is_molB=True, cls=Dummy)
-        )
-        lower_indicies.append(
-            symbols("s_{0}".format(i), is_molB=True, cls=Dummy)
-        )
+
+    if n:
+        upper_indicies = []
+        lower_indicies = []
+        for i in range(n):
+            upper_indicies.append(
+                symbols("r_{0}".format(i), is_molB=True, cls=Dummy)
+            )
+            lower_indicies.append(
+                symbols("s_{0}".format(i), is_molB=True, cls=Dummy)
+            )
 
     creation_part = [bd(index) for index in upper_indicies]
     annihilation_part = [b(index) for index in reversed(lower_indicies)]
@@ -83,8 +102,11 @@ def get_V_operator() -> Expr:
 
 def get_P2_operator() -> Expr:
     """
-    Prepers permutation operator of one pair of electrons
+    Prepers P2 permutation operator of one pair of electrons
     interchanging between monomers A and B.
+
+    Returns:
+        Expr: SymPy Expr encoding P2 permutation operator
     """
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
@@ -103,8 +125,11 @@ def get_P2_operator() -> Expr:
 
 def get_P4_operator() -> Expr:
     """
-    Prepers permutation operator of two pairs of electrons
+    Prepers P4 permutation operator of two pairs of electrons
     interchanging between monomers A and B.
+
+    Returns:
+        Expr: SymPy Expr encoding P4 permutation operator
     """
     p1, p2, q1, q2 = symbols("p_1 p_2 q_1 q_2", is_molA=True, cls=Dummy)
     r1, r2, s1, s2 = symbols("r_1 r_2 s_1 s_2", is_molB=True, cls=Dummy)
