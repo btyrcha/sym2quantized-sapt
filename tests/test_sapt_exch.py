@@ -2,9 +2,7 @@ import pytest
 
 from sympy import symbols, Dummy, latex
 
-from sym2quantized_sapt.double_fermi_vac import (
-    wicks_double_vac,
-)
+from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
 
 from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.spin_integrator import spin_integration
@@ -14,7 +12,7 @@ from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 def test_can_evaluate_sapt_exch_10_energy():
     """calculates Exch10 RHF expression"""
 
-    reference_latex = r"- 2 s^{i}_{b} s^{j}_{i} v_A^{b}_{j} - 2 s^{i}_{j} s^{j}_{a} v_B^{a}_{i} - 4 s^{i}_{b} s^{j}_{i} v^{i_1b}_{i_1j} - 4 s^{i}_{j} s^{j}_{a} v^{aj_1}_{ij_1} - 2 s^{i}_{b} s^{j}_{a} v^{ab}_{ij}"
+    reference_latex = r"- 2 s^{i}_{b} s^{j}_{a} v^{ab}_{ij} - 4 s^{i}_{b} s^{j}_{i} v^{i_1b}_{i_1j} - 2 s^{i}_{b} s^{j}_{i} v_A^{b}_{j} - 4 s^{i}_{j} s^{j}_{a} v^{aj_1}_{ij_1} - 2 s^{i}_{j} s^{j}_{a} v_B^{a}_{i}"
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
@@ -25,11 +23,7 @@ def test_can_evaluate_sapt_exch_10_energy():
     b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
     j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-    v = DoubleVacuumTensorSymbol(
-        "v",
-        (p, r),
-        (q, s),
-    )
+    v = DoubleVacuumTensorSymbol("v", (p, r), (q, s),)
     vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
     vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
     V0 = symbols("V_0")

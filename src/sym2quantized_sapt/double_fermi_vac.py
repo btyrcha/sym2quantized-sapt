@@ -268,31 +268,34 @@ def _get_contractions_double_vac(string, keep_only_fully_contracted=False):
 
 
 def wicks_double_vac(
-    expr, expand=True, keep_only_fully_contracted=False, **kwargs
+    expr,
+    expand=True,
+    keep_only_fully_contracted=False,
+    substitute_dummies=True,
+    simplify_kronecker_deltas=True,
 ):
     """
     Returns Wicks Theorem expansion of a given expresion.
     """
-    opts = {
-        "simplify_kronecker_deltas": True,
-        "substitute_dummies": True,
-    }
-    opts.update(kwargs)
 
     expr = sy_expand(expr)
 
     if isinstance(expr, Add):
-        return Add(
+        ans = Add(
             *[
                 wicks_double_vac(
                     arg,
                     expand=expand,
                     keep_only_fully_contracted=keep_only_fully_contracted,
-                    **kwargs,
+                    substitute_dummies=False,
+                    simplify_kronecker_deltas=simplify_kronecker_deltas,
                 )
                 for arg in expr.args
             ]
         )
+        if substitute_dummies:
+            ans = substitute_dummies_double_vac(ans)
+        return ans
 
     elif isinstance(expr, Mul):
         # Commuting and not-commuting parts
@@ -322,16 +325,15 @@ def wicks_double_vac(
         else:
             # Finding all contractions
             ans = _get_contractions_double_vac(
-                string,
-                keep_only_fully_contracted=keep_only_fully_contracted,
+                string, keep_only_fully_contracted=keep_only_fully_contracted,
             )
             ans = Mul(*com_part, *NO_part) * ans
 
         if expand:
             ans = ans.expand()
-        if opts["simplify_kronecker_deltas"]:
+        if simplify_kronecker_deltas:
             ans = evaluate_deltas_double_vac(ans)
-        if opts["substitute_dummies"]:
+        if substitute_dummies:
             ans = substitute_dummies_double_vac(ans)
 
         return ans
