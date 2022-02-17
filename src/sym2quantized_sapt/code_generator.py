@@ -72,7 +72,11 @@ def _get_einsum_for_term(term: Mul) -> str:
     elif coeff == -1:
         code_str = "".join(("-", code_str))
     else:
-        code_str = " * ".join((str(coeff), code_str))
+        if coeff == int(coeff):
+            coeff_str = str(int(coeff))
+        else:
+            coeff_str = str(coeff)
+        code_str = " * ".join((coeff_str, code_str))
 
     return code_str
 
