@@ -1,7 +1,8 @@
 from sympy import symbols, Dummy
-from sympy.core import Expr, Mul
+from sympy.core import Expr, Mul, S
 from sym2quantized_sapt.operators import ad, a, bd, b
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
+from math import factorial
 
 
 def get_a_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
@@ -144,5 +145,64 @@ def get_P4_operator() -> Expr:
 
     a_part = ad(q1) * ad(q2) * a(p2) * a(p1)
     b_part = bd(s1) * bd(s2) * b(r2) * b(r1)
+
+    return P_tensor * a_part * b_part
+
+
+def get_Pn_operator(n: int) -> Expr:
+    """
+    Prepers Pn operator - permutation operator of n pairs of electrons
+    interchanging between monomers A and B.
+
+    Args:
+        n (int): number of electrons interchanging between monomers
+
+    Returns:
+        Expr: SymPy Expr encoding Pn permutation operator
+    """
+
+    m = n // 2
+
+    upper_indicies_A = []
+    lower_indicies_A = []
+    upper_indicies_B = []
+    lower_indicies_B = []
+
+    for i in range(m):
+        upper_indicies_A.append(
+            symbols("p_{0}".format(i), is_molA=True, cls=Dummy)
+        )
+        lower_indicies_A.append(
+            symbols("q_{0}".format(i), is_molA=True, cls=Dummy)
+        )
+        upper_indicies_B.append(
+            symbols("r_{0}".format(i), is_molB=True, cls=Dummy)
+        )
+        lower_indicies_B.append(
+            symbols("s_{0}".format(i), is_molB=True, cls=Dummy)
+        )
+
+    coeff = ((-1) ** m) / (factorial(m) ** 2)
+    if coeff == -1:
+        P_tensor = -1 * S.One
+    else:
+        P_tensor = coeff
+
+    for i in range(m):
+        P_tensor *= DoubleVacuumTensorSymbol(
+            "s", (upper_indicies_B[i],), (lower_indicies_A[i],)
+        )
+    for i in range(m):
+        P_tensor *= DoubleVacuumTensorSymbol(
+            "s", (upper_indicies_A[i],), (lower_indicies_B[i],)
+        )
+
+    creation_part_A = [ad(index) for index in lower_indicies_A]
+    annihilation_part_A = [a(index) for index in reversed(upper_indicies_A)]
+    a_part = Mul(*creation_part_A, *annihilation_part_A)
+
+    creation_part_B = [bd(index) for index in lower_indicies_B]
+    annihilation_part_B = [b(index) for index in reversed(upper_indicies_B)]
+    b_part = Mul(*creation_part_B, *annihilation_part_B)
 
     return P_tensor * a_part * b_part
