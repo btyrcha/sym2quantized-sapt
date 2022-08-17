@@ -1,3 +1,4 @@
+import string
 from sympy import Add, Mul, Expr
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
@@ -19,7 +20,7 @@ def _psi4numpy_indices(index: str) -> str:
     return index
 
 
-def _replace_indices_names(indices: str) -> str:
+def _pretty_indices_names(indices: str) -> str:
 
     if "a_1" in indices:
         indices = indices.replace("a_1", "A")
@@ -33,12 +34,42 @@ def _replace_indices_names(indices: str) -> str:
     if "s_1" in indices:
         indices = indices.replace("s_1", "S")
 
-    # TODO replace other possible index names
+    if "a_2" in indices:
+        indices = indices.replace("a_2", "c")
+
+    if "b_2" in indices:
+        indices = indices.replace("b_2", "d")
+
+    if "a_3" in indices:
+        indices = indices.replace("a_3", "C")
+
+    if "b_3" in indices:
+        indices = indices.replace("b_3", "D")
 
     return indices
 
 
-def _get_einsum_for_term(term: Mul) -> str:
+def _replace_indices_names(indices: str) -> str:
+
+    new_names = list(string.ascii_lowercase) + list(string.ascii_uppercase)
+
+    used_names = ["a", "b", "r", "s"]
+    for elem in used_names:
+        new_names.remove(elem)
+
+    new_indices = indices
+    for i, elem in enumerate(indices):
+        if elem == "_":
+            try:
+                old_name = "".join([indices[i - 1], elem, indices[i + 1]])
+                new_indices = new_indices.replace(old_name, new_names.pop(0))
+            except:
+                print("Too many indices!!!")
+
+    return new_indices
+
+
+def _get_einsum_for_term(term: Mul, pretty_indices=False) -> str:
 
     coeff = term.args[0]
 
@@ -63,9 +94,16 @@ def _get_einsum_for_term(term: Mul) -> str:
             variables.append("_".join((str(arg.symbol()), var_indices)))
 
     indices = ",".join(indices)
-    indices = _replace_indices_names(indices)
+    if pretty_indices:
+        indices = _pretty_indices_names(indices)
+    else:
+        indices = _replace_indices_names(indices)
 
-    code_str = 'np.einsum("{0}", {1})'.format(indices, ", ".join(variables))
+    variables = ", ".join(variables)
+    variables = variables.replace("v_A", "vA")
+    variables = variables.replace("v_B", "vB")
+
+    code_str = 'np.einsum("{0}", {1})'.format(indices, variables)
 
     if coeff == 1:
         pass
