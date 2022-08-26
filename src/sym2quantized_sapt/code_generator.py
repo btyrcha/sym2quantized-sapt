@@ -106,7 +106,7 @@ def _get_einsum_for_term(term: Mul, pretty_indices=False) -> str:
     code_str = 'np.einsum("{0}", {1})'.format(indices, variables)
 
     if coeff == 1:
-        pass
+        code_str = "".join(("+", code_str))
     elif coeff == -1:
         code_str = "".join(("-", code_str))
     else:
@@ -116,10 +116,14 @@ def _get_einsum_for_term(term: Mul, pretty_indices=False) -> str:
             coeff_str = str(coeff)
         code_str = " * ".join((coeff_str, code_str))
 
+        # extra plus in front
+        if coeff > 0:
+            code_str = "".join(("+", code_str))
+
     return code_str
 
 
-def generate_einsum(expr: Expr) -> str:
+def generate_einsum(expr: Expr, pretty_indices=False) -> str:
     """
     Generates string containing numpy einsum code of given expression.
 
@@ -131,10 +135,15 @@ def generate_einsum(expr: Expr) -> str:
     """
 
     if isinstance(expr, Add):
-        return "\n".join([generate_einsum(arg) for arg in expr.args])
+        return "\n".join(
+            [
+                generate_einsum(arg, pretty_indices=pretty_indices)
+                for arg in expr.args
+            ]
+        )
 
     if isinstance(expr, Mul):
-        return _get_einsum_for_term(expr)
+        return _get_einsum_for_term(expr, pretty_indices=pretty_indices)
 
     # expr is neither Mul nor Add:
     return ""
