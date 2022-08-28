@@ -42,4 +42,8 @@ def format_expr(expression: Add) -> str:
         else:
             expression_repr += f"& + {latex_str} \\\\ \n"
 
+    expression_repr = expression_repr.replace("v_A", "(v_A)")
+    expression_repr = expression_repr.replace("v_B", "(v_B)")
+    expression_repr = expression_repr.replace("s", "S")
+
     return expression_repr
