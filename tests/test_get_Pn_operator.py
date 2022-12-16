@@ -18,6 +18,7 @@ def test_can_recreate_P2():
     assert reference_latex == tested_expr
 
 
+@pytest.mark.slow
 def test_can_recreate_P4():
 
     reference_latex = latex(wicks_double_vac(get_P4_operator()))

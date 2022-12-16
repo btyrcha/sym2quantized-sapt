@@ -1,5 +1,6 @@
 import string
-from sympy import Add, Mul, Expr
+from sympy import Add, Mul, Expr, expand
+from sympy.physics.secondquant import TensorSymbol
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
@@ -63,28 +64,38 @@ def _replace_indices_names(indices: str) -> str:
             try:
                 old_name = "".join([indices[i - 1], elem, indices[i + 1]])
                 new_indices = new_indices.replace(old_name, new_names.pop(0))
-            except:
-                print("Too many indices!!!")
+            except IndexError:
+                print("Too many indices!!! Not enough names for them.")
 
     return new_indices
 
 
 def _get_einsum_for_term(term: Mul, pretty_indices=False) -> str:
 
-    coeff = term.args[0]
+    if isinstance(term.args[0], TensorSymbol):
+        coeff = 1
+    else:
+        coeff = term.args[0]
 
     indices = []
+    indices_raw = []
+    upper = []
+    lower = []
     variables = []
 
     for arg in term.args:
 
         if isinstance(arg, DoubleVacuumTensorSymbol):
 
-            indices_names = [
+            upper += [_psi4numpy_indices(idx.name) for idx in arg.upper()]
+            lower += [_psi4numpy_indices(idx.name) for idx in arg.lower()]
+
+            arg_indices = [
                 _psi4numpy_indices(idx.name)
                 for idx in (*arg.lower(), *arg.upper())
             ]
-            indices.append("".join(indices_names))
+            indices.append("".join(arg_indices))
+            indices_raw += arg_indices
 
             var_indices = [
                 _psi4numpy_indices(idx.name[0])
@@ -93,7 +104,21 @@ def _get_einsum_for_term(term: Mul, pretty_indices=False) -> str:
             var_indices = "".join(var_indices)
             variables.append("_".join((str(arg.symbol()), var_indices)))
 
+    # check for uncontracted indicies
+    uncont_idx = []
+    for elem in indices_raw:
+        if (elem not in lower) or (elem not in upper):
+            uncont_idx.append(elem)
+
+    # upper = set(upper)
+    # lower = set(lower)
+    # uncont_idx = (upper | lower) - (upper & lower)
+    # uncont_idx = list(uncont_idx)
+
     indices = ",".join(indices)
+    if uncont_idx:
+        indices += "->" + "".join(uncont_idx)
+
     if pretty_indices:
         indices = _pretty_indices_names(indices)
     else:
@@ -133,6 +158,8 @@ def generate_einsum(expr: Expr, pretty_indices=False) -> str:
     Returns:
         str: string with numpy code
     """
+
+    expr = expand(expr)
 
     if isinstance(expr, Add):
         return "\n".join(
