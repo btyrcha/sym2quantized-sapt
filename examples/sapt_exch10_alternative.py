@@ -1,3 +1,8 @@
+"""
+Derives the first-order exchange correction in S^2 approximation as only linked
+parts of <V P2> term.
+"""
+
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
 from sym2quantized_sapt.diagrams import get_only_linked
 from sym2quantized_sapt.spin_integrator import spin_integration

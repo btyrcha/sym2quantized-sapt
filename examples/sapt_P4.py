@@ -1,3 +1,7 @@
+"""
+Derives <V P_4> expectation value.
+"""
+
 import time
 from typing import Tuple
 
@@ -21,19 +25,19 @@ def compute_exch10_s4() -> Tuple[Expr, Expr]:
     P4 = get_P4_operator()
 
     # create operator to be averaged
-    expr = V * P4
+    e = V * P4
 
     # perform wicks
-    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
+    e = wicks_double_vac(e, keep_only_fully_contracted=True)
 
     # spin integrate for RHF
-    expr_all = spin_integration(expr)
+    e_all = spin_integration(e)
 
     # extract linked only
-    expr_linked = get_only_linked(expr_all)
+    e_linked = get_only_linked(e_all)
 
     # return both
-    return expr_all, expr_linked
+    return e_all, e_linked
 
 
 if __name__ == "__main__":

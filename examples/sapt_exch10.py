@@ -4,8 +4,8 @@ in second-quantzation approach.
 
 Based on:
 Moszynski, Robert, Bogumil Jeziorski, and Krzysztof Szalewicz.
-"Many‐body theory of exchange effects in intermolecular interactions.
-Second‐quantization approach and comparison with full configuration interaction
+"Many-body theory of exchange effects in intermolecular interactions.
+Second-quantization approach and comparison with full configuration interaction
 results", The Journal of chemical physics 100 (2), 1312 (1994).
 """
 
@@ -24,17 +24,7 @@ i1 = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
 b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
 j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-v = DoubleVacuumTensorSymbol(
-    "v",
-    (
-        p,
-        r,
-    ),
-    (
-        q,
-        s,
-    ),
-)
+v = DoubleVacuumTensorSymbol("v", (p, r,), (q, s,),)
 vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
 vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
 V0 = symbols("V_0")
