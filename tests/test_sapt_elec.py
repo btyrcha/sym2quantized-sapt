@@ -10,7 +10,6 @@ from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
 def test_can_evaluate_sapt_pol_10_energy():
-
     reference_latex = r"V_{0} + 4 v^{ij}_{ij} + 2 v_A^{j}_{j} + 2 v_B^{i}_{i}"
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)

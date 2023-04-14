@@ -8,7 +8,6 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
     """
 
     def __new__(cls, symbol, upper, lower):
-
         symbol = sympify(symbol)
         upper = Tuple(*upper)
         lower = Tuple(*lower)

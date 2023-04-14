@@ -36,14 +36,12 @@ class NO_double_vac:
     """
 
     def __new__(cls, arg):
-
         arg = sympify(arg)
         arg = arg.expand()
         if isinstance(arg, Add):
             return Add(*[NO_double_vac(elem) for elem in arg.args])
 
         elif isinstance(arg, Mul):
-
             # separating coefficient from arg
             comuting_part, seq = arg.args_cnc()
             if comuting_part:
@@ -84,7 +82,6 @@ def contraction_double_vac(X, Y):
     """
 
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
-
         if isinstance(X, AnnihilateFermion_A) and isinstance(
             Y, CreateFermion_A
         ):
@@ -193,7 +190,6 @@ def evaluate_deltas_double_vac(expr):
             if (killable_molA and preferred_molA) or (
                 killable_molB and preferred_molB
             ):
-
                 if d.killable_index.is_Symbol and indicies[d.killable_index]:
                     # Method killabel_index returns index containing less information
                     # regarding fermi level. If both contain the same amount of information
@@ -240,7 +236,6 @@ def _get_contractions_double_vac(string, keep_only_fully_contracted=False):
 
     for i in range(len(string) - 1):
         for j in range(i + 1, len(string)):
-
             c = contraction_double_vac(string[i], string[j])
 
             if c:
@@ -302,7 +297,6 @@ def wicks_double_vac(
         )
 
     elif isinstance(expr, Mul):
-
         # Commuting and not-commuting parts
         com_part = []
         NO_part = []
@@ -359,7 +353,6 @@ def get_fully_contracted(expr):
         return Add(*[get_fully_contracted(term) for term in expr.args])
 
     elif isinstance(expr, Mul):
-
         is_contr = True
         for term in expr.args:
             if (
@@ -407,7 +400,6 @@ def substitute_dummies_double_vac(expr):
         assum = elem.assumptions0
 
         if assum.get("is_molA"):
-
             if assum.get("above_fermi"):
                 if a == 0:
                     index = Dummy("a", **assum)
@@ -433,7 +425,6 @@ def substitute_dummies_double_vac(expr):
                 p += 1
 
         if assum.get("is_molB"):
-
             if assum.get("above_fermi"):
                 if b == 0:
                     index = Dummy("b", **assum)

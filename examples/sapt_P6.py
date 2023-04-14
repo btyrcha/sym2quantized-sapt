@@ -100,7 +100,6 @@ run_time = time.time() - start_time
 
 
 with open("sapt_P6.out", "w") as f:
-
     f.write("Program took %s seconds to run\n" % run_time)
 
     # f.write("\n< V P6 > =\n")
