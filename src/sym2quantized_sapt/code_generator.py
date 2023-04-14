@@ -4,7 +4,6 @@ from sympy.physics.secondquant import TensorSymbol
 
 
 def _psi4numpy_indices(index: str) -> str:
-
     if "a" in index:
         index = index.replace("a", "r")
 
@@ -21,7 +20,6 @@ def _psi4numpy_indices(index: str) -> str:
 
 
 def _pretty_indices_names(indices: str) -> str:
-
     if "a_1" in indices:
         indices = indices.replace("a_1", "A")
 
@@ -50,7 +48,6 @@ def _pretty_indices_names(indices: str) -> str:
 
 
 def _replace_indices_names(indices: str) -> str:
-
     new_names = list(string.ascii_lowercase) + list(string.ascii_uppercase)
 
     used_names = ["a", "b", "r", "s"]
@@ -72,7 +69,6 @@ def _replace_indices_names(indices: str) -> str:
 def _get_code_str(
     coeff, cont_ind, uncont_ind, variables, pretty_indices=False
 ) -> str:
-
     indices = ",".join(cont_ind)
     if uncont_ind:
         indices += "->" + "".join(uncont_ind)
@@ -107,7 +103,6 @@ def _get_code_str(
 
 
 def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
-
     upper = [_psi4numpy_indices(idx.name) for idx in tensor.upper()]
     lower = [_psi4numpy_indices(idx.name) for idx in tensor.lower()]
 
@@ -134,7 +129,6 @@ def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
 
 
 def _get_einsum_for_Mul(term: Mul, pretty_indices=False) -> str:
-
     if isinstance(term.args[0], TensorSymbol):
         coeff = 1
     else:
@@ -147,9 +141,7 @@ def _get_einsum_for_Mul(term: Mul, pretty_indices=False) -> str:
     variables = []
 
     for arg in term.args:
-
         if isinstance(arg, TensorSymbol):
-
             upper += [_psi4numpy_indices(idx.name) for idx in arg.upper()]
             lower += [_psi4numpy_indices(idx.name) for idx in arg.lower()]
 

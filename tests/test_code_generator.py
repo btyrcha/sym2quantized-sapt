@@ -4,7 +4,6 @@ from sym2quantized_sapt.code_generator import generate_einsum
 
 
 def test_single_self_contraction():
-
     reference = """+np.einsum("kk", A_kk)"""
 
     k = symbols("k", below_fermi=True)
@@ -16,7 +15,6 @@ def test_single_self_contraction():
 
 
 def test_doucle_self_contraction():
-
     reference = """+np.einsum("klkl", A_klkl)"""
 
     k, l = symbols("k l", below_fermi=True)
@@ -38,7 +36,6 @@ def test_doucle_self_contraction():
 
 
 def test_partial_self_contraction():
-
     reference = """+np.einsum("kmkl->ml", A_kmkl)"""
 
     k, l, m = symbols("k l m", below_fermi=True)
@@ -60,7 +57,6 @@ def test_partial_self_contraction():
 
 
 def test_two_eris():
-
     reference = """-np.einsum("abrs,rsab", v_abrs, v_rsab)"""
 
     a = symbols("a", is_molA=True, above_fermi=True)
@@ -98,7 +94,6 @@ def test_two_eris():
 
 
 def test_matrix_multiplication():
-
     reference = """+np.einsum("kl,lm->km", A_kl, B_lm)"""
 
     k, l, m = symbols("k l m")

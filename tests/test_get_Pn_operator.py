@@ -10,7 +10,6 @@ from sym2quantized_sapt.sapt_utils import (
 
 
 def test_can_recreate_P2():
-
     reference_latex = latex(wicks_double_vac(get_P2_operator()))
 
     tested_expr = latex(wicks_double_vac(get_Pn_operator(2)))
@@ -20,7 +19,6 @@ def test_can_recreate_P2():
 
 @pytest.mark.slow
 def test_can_recreate_P4():
-
     reference_latex = latex(wicks_double_vac(get_P4_operator()))
 
     tested_expr = latex(wicks_double_vac(get_Pn_operator(4)))

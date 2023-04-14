@@ -23,7 +23,11 @@ def test_can_evaluate_sapt_exch_10_energy():
     b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
     j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-    v = DoubleVacuumTensorSymbol("v", (p, r), (q, s),)
+    v = DoubleVacuumTensorSymbol(
+        "v",
+        (p, r),
+        (q, s),
+    )
     vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
     vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
     V0 = symbols("V_0")

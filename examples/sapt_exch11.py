@@ -37,7 +37,17 @@ b1, b2 = symbols("b b_1", is_molB=True, above_fermi=True, cls=Dummy)
 j1, j2 = symbols("j j_1", is_molB=True, below_fermi=True, cls=Dummy)
 
 
-v = DoubleVacuumTensorSymbol("v", (q, s,), (p, r,),)
+v = DoubleVacuumTensorSymbol(
+    "v",
+    (
+        q,
+        s,
+    ),
+    (
+        p,
+        r,
+    ),
+)
 vA = DoubleVacuumTensorSymbol("(v_A)", (s,), (r,))
 vB = DoubleVacuumTensorSymbol("(v_B)", (q,), (p,))
 V0 = DoubleVacuumTensorSymbol("V_0", (), ())
@@ -59,7 +69,17 @@ V01_dash_dagger = (
 )
 
 V11_dash_dagger = (
-    DoubleVacuumTensorSymbol("v", (a2, b2,), (i2, j2,),)
+    DoubleVacuumTensorSymbol(
+        "v",
+        (
+            a2,
+            b2,
+        ),
+        (
+            i2,
+            j2,
+        ),
+    )
     * ad(i2)
     * a(a2)
     * bd(j2)
@@ -108,7 +128,17 @@ P_dash = P10_dash + P01_dash + P11_dash
 T20_part1 = (
     1
     / 4
-    * DoubleVacuumTensorSymbol("t", (i3, i4,), (a3, a4,),)
+    * DoubleVacuumTensorSymbol(
+        "t",
+        (
+            i3,
+            i4,
+        ),
+        (
+            a3,
+            a4,
+        ),
+    )
     * ad(a3)
     * ad(a4)
     * a(i4)
@@ -118,7 +148,17 @@ T20_part1 = (
 T20_part2 = (
     -1
     / 4
-    * DoubleVacuumTensorSymbol("t", (i4, i3,), (a3, a4,),)
+    * DoubleVacuumTensorSymbol(
+        "t",
+        (
+            i4,
+            i3,
+        ),
+        (
+            a3,
+            a4,
+        ),
+    )
     * ad(a3)
     * ad(a4)
     * a(i4)
@@ -130,7 +170,17 @@ T20 = T20_part1 + T20_part2
 T20_part1_dagger = (
     1
     / 4
-    * DoubleVacuumTensorSymbol("t", (a3, a4,), (i3, i4,),)
+    * DoubleVacuumTensorSymbol(
+        "t",
+        (
+            a3,
+            a4,
+        ),
+        (
+            i3,
+            i4,
+        ),
+    )
     * ad(i3)
     * ad(i4)
     * a(a4)
@@ -140,7 +190,17 @@ T20_part1_dagger = (
 T20_part2_dagger = (
     -1
     / 4
-    * DoubleVacuumTensorSymbol("t", (a3, a4,), (i4, i3,),)
+    * DoubleVacuumTensorSymbol(
+        "t",
+        (
+            a3,
+            a4,
+        ),
+        (
+            i4,
+            i3,
+        ),
+    )
     * ad(i3)
     * ad(i4)
     * a(a4)

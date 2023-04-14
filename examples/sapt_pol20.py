@@ -24,7 +24,17 @@ i1 = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
 b1 = symbols("b", is_molB=True, above_fermi=True, cls=Dummy)
 j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-v = DoubleVacuumTensorSymbol("v", (p, r,), (q, s,),)
+v = DoubleVacuumTensorSymbol(
+    "v",
+    (
+        p,
+        r,
+    ),
+    (
+        q,
+        s,
+    ),
+)
 vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
 vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
 V0 = symbols("V_0")
@@ -41,7 +51,17 @@ T10 = DoubleVacuumTensorSymbol("t_B", (i1,), (a1,)) * ad(a1) * a(i1)
 T01 = DoubleVacuumTensorSymbol("t_A", (j1,), (b1,)) * bd(b1) * b(j1)
 
 T11 = (
-    DoubleVacuumTensorSymbol("t", (i1, j1,), (a1, b1,),)
+    DoubleVacuumTensorSymbol(
+        "t",
+        (
+            i1,
+            j1,
+        ),
+        (
+            a1,
+            b1,
+        ),
+    )
     * ad(a1)
     * a(i1)
     * bd(b1)

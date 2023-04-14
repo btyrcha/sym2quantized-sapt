@@ -325,7 +325,8 @@ def wicks_double_vac(
         else:
             # Finding all contractions
             ans = _get_contractions_double_vac(
-                string, keep_only_fully_contracted=keep_only_fully_contracted,
+                string,
+                keep_only_fully_contracted=keep_only_fully_contracted,
             )
             ans = Mul(*com_part, *NO_part) * ans
 
