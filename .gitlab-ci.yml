@@ -46,6 +46,7 @@ format-check:
     name: python:3.8-slim-buster
   stage: pre-build
   before_script:
+    - apt update && apt install -y --no-install-recommends git
     - python3 -m pip install -r requirements-dev.txt --no-cache-dir
   # non-zero output of --check if something would change
   script:
