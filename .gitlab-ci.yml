@@ -35,7 +35,7 @@ python-3.8-build:
     - python3 -m pip install --upgrade pip
     - python3 -m pip install -r requirements.txt
   script:
-    - python3 -m pip install -e . --no-use-pep517
+    - python3 -m pip install -e .
   tags: [docker, linux]
   cache:
     policy: pull-push
@@ -49,7 +49,7 @@ format-check:
     - python3 -m pip install -r requirements-dev.txt --no-cache-dir
   # non-zero output of --check if something would change
   script:
-    - python3 -m black --check --diff src/ setup.py
+    - pre-commit install && pre-commit run -a
   tags: [docker, linux]
 
 # pylint check for current MR
