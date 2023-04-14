@@ -27,9 +27,9 @@ workflow:
     - if: '$CI_COMMIT_BRANCH =~ /^[\d-]+-stable(-ee)?$/'
     - if: '$CI_COMMIT_BRANCH =~ /^\d+-\d+-auto-deploy-\d+$/'
 
-python-3.8.10-build:
+python-3.8-build:
   image:
-    name: python:3.8.10-slim-buster
+    name: python:3.8-slim-buster
   stage: build
   before_script:
     - python3 -m pip install --upgrade pip
@@ -43,10 +43,10 @@ python-3.8.10-build:
 # format check step
 format-check:
   image:
-    name: python:3.8.10-slim-buster
+    name: python:3.8-slim-buster
   stage: pre-build
   before_script:
-    - python3 -m pip install -r requirements_dev.txt --no-cache-dir
+    - python3 -m pip install -r requirements-dev.txt --no-cache-dir
   # non-zero output of --check if something would change
   script:
     - python3 -m black --check --diff src/ setup.py
@@ -55,10 +55,10 @@ format-check:
 # pylint check for current MR
 pylint-mr-check:
   image:
-    name: python:3.8.10-slim-buster
+    name: python:3.8-slim-buster
   stage: pre-build
   before_script:
-    - python3 -m pip install -r requirements_dev.txt --no-cache-dir
+    - python3 -m pip install -r requirements-dev.txt --no-cache-dir
     - apt-get update && apt-get install -y git
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
   script:
@@ -69,10 +69,10 @@ pylint-mr-check:
 # pylint check for whole codebase
 pylint-check:
   image:
-    name: python:3.8.7-slim-buster
+    name: python:3.8-slim-buster
   stage: build
   before_script:
-    - python3 -m pip install -r requirements_dev.txt --no-cache-dir
+    - python3 -m pip install -r requirements-dev.txt --no-cache-dir
   script:
     - python3 -m pylint --rcfile=.pylintrc --output-format=text src/ --exit-zero > pylint.out
     - export score=$(sed -n 's/^Your code has been rated at \([-0-9.]*\)\/.*/\1/p' pylint.out)
@@ -83,18 +83,17 @@ pylint-check:
   # make failure non-blocking for now
   allow_failure: True
 
-# test job for python3 3.8.10
-python-3.8.10-test:
+python-3.8-test:
   image:
-    name: python:3.8.10-slim-buster
+    name: python:3.8-slim-buster
   stage: test
   before_script:
     - python3 -m pip install --upgrade pip
     - python3 -m pip install -r requirements.txt
     # add dev dependecies for test-coverage etc.
-    - python3 -m pip install -r requirements_dev.txt
+    - python3 -m pip install -r requirements-dev.txt
   script:
-    - python3 -m pip install -e . --no-use-pep517
+    - python3 -m pip install -e .
     - coverage run -m pytest tests/ --slow
     - coverage report
     # ensure all tests were run
