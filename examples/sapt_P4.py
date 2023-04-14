@@ -96,7 +96,6 @@ def compute_exch10_s4() -> Tuple[Expr, Expr]:
 
 
 if __name__ == "__main__":
-
     ### Start measuring run time
     start_time = time.time()
 

@@ -4,6 +4,7 @@ from time import process_time
 from sympy import latex
 from sympy.core import Expr
 
+
 # NOTE: https://dev.to/po5i/python-decorator-to-measure-function-s-execution-time-4d26
 def timeit(func):
     """timing decorator"""

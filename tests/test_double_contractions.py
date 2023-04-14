@@ -10,7 +10,6 @@ from sym2quantized_sapt.operators import a, ad, b, bd
 
 
 def test_can_evaluate_hole_contraction():
-
     reference_latex = r"\delta_{i_{1} i_{2}}"
 
     i1, i2 = symbols("i1 i2", is_molA=True, below_fermi=True, cls=Dummy)
@@ -22,7 +21,6 @@ def test_can_evaluate_hole_contraction():
 
 
 def test_can_evaluate_particle_contraction():
-
     reference_latex = r"\delta_{b_{1} b_{2}}"
 
     b1, b2 = symbols("b1 b2", is_molB=True, above_fermi=True, cls=Dummy)
@@ -34,7 +32,6 @@ def test_can_evaluate_particle_contraction():
 
 
 def test_can_evaluate_zero_contraction_1():
-
     reference_latex = r"0"
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
@@ -46,7 +43,6 @@ def test_can_evaluate_zero_contraction_1():
 
 
 def test_can_evaluate_zero_contraction_2():
-
     reference_latex = r"0"
 
     r, s = symbols("r s", is_molB=True, cls=Dummy)
@@ -58,7 +54,6 @@ def test_can_evaluate_zero_contraction_2():
 
 
 def test_can_evaluate_cross_monomer_contraction():
-
     reference_latex = r"0"
 
     p = symbols("p", is_molA=True, cls=Dummy)
@@ -71,7 +66,6 @@ def test_can_evaluate_cross_monomer_contraction():
 
 
 def test_can_evaluate_general_indicies_contraction_1():
-
     reference_latex = r"\delta_{i q} \delta_{p q}"
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
@@ -83,7 +77,6 @@ def test_can_evaluate_general_indicies_contraction_1():
 
 
 def test_can_evaluate_general_indicies_contraction_2():
-
     reference_latex = r"\delta_{b s} \delta_{r s}"
 
     r, s = symbols("r s", is_molB=True, cls=Dummy)

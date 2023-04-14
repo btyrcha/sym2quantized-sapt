@@ -369,7 +369,7 @@ good-names=i,
            oo,
            ov,
            vv,
-           
+
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
