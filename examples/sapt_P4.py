@@ -1,72 +1,17 @@
+"""
+Derives <V P_4> expectation value.
+"""
+
 import time
 from typing import Tuple
 
-from sympy import symbols, Dummy
 from sympy.core import Expr
 
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
-from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.spin_integrator import spin_integration
-from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 from sym2quantized_sapt.diagrams import get_only_linked
 from sym2quantized_sapt.utils import timeit, format_expr
-
-
-def get_V_operator() -> Expr:
-    """prepares V-tilde operator
-
-    Returns:
-        Expr: SymPy Expr encoding V-tilde (dimer interaction operator)
-    """
-    p, q = symbols("p q", is_molA=True, cls=Dummy)
-    r, s = symbols("r s", is_molB=True, cls=Dummy)
-
-    v = DoubleVacuumTensorSymbol(
-        "v",
-        (
-            p,
-            r,
-        ),
-        (
-            q,
-            s,
-        ),
-    )
-    vA = DoubleVacuumTensorSymbol("(v_A)", (r,), (s,))
-    vB = DoubleVacuumTensorSymbol("(v_B)", (p,), (q,))
-    V0 = DoubleVacuumTensorSymbol("V_0", (), ())
-
-    V = (
-        v * ad(q) * a(p) * bd(s) * b(r)
-        + vA * bd(s) * b(r)
-        + vB * ad(q) * a(p)
-        + V0
-    )
-
-    return V
-
-
-def get_P4_operator() -> Expr:
-    """constructs exchange-S^4  - P4 operator
-
-    Returns:
-        Expr: SymPy Expr encoding P4 operator (S^4 exchange operator)
-    """
-    p1, p2, q1, q2 = symbols("p_1 p_2 q_1 q_2", is_molA=True, cls=Dummy)
-    r1, r2, s1, s2 = symbols("r_1 r_2 s_1 s_2", is_molB=True, cls=Dummy)
-
-    P_tensor = (
-        0.25
-        * DoubleVacuumTensorSymbol("s", (r1,), (q1,))
-        * DoubleVacuumTensorSymbol("s", (r2,), (q2,))
-        * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
-        * DoubleVacuumTensorSymbol("s", (p2,), (s2,))
-    )
-
-    a_part = ad(q1) * ad(q2) * a(p2) * a(p1)
-    b_part = bd(s1) * bd(s2) * b(r2) * b(r1)
-
-    return P_tensor * a_part * b_part
+from sym2quantized_sapt.sapt_utils import get_V_operator, get_P4_operator
 
 
 @timeit
@@ -80,19 +25,19 @@ def compute_exch10_s4() -> Tuple[Expr, Expr]:
     P4 = get_P4_operator()
 
     # create operator to be averaged
-    expr = V * P4
+    e = V * P4
 
     # perform wicks
-    expr = wicks_double_vac(expr, keep_only_fully_contracted=True)
+    e = wicks_double_vac(e, keep_only_fully_contracted=True)
 
     # spin integrate for RHF
-    expr_all = spin_integration(expr)
+    e_all = spin_integration(e)
 
     # extract linked only
-    expr_linked = get_only_linked(expr_all)
+    e_linked = get_only_linked(e_all)
 
     # return both
-    return expr_all, expr_linked
+    return e_all, e_linked
 
 
 if __name__ == "__main__":
@@ -106,6 +51,7 @@ if __name__ == "__main__":
 
     plain_expr_str = format_expr(expr)
     linked_expr_str = format_expr(expr_linked)
+
     # write out the results
     with open("sapt_P4.out", "w") as f:
         f.write(f"Program took {run_time} seconds to run\n")

@@ -14,6 +14,7 @@ from sym2quantized_sapt.operators import a, ad, b, bd
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
+
 p, q = symbols("p q", is_molA=True, cls=Dummy)
 r, s = symbols("r s", is_molB=True, cls=Dummy)
 
@@ -45,23 +46,13 @@ V = (
     + V0
 )
 
-T10 = (
-    DoubleVacuumTensorSymbol("o_B", (i1,), (a1,))
-    / DoubleVacuumTensorSymbol("e", (a1,), (i1,))
-    * ad(a1)
-    * a(i1)
-)
+T10 = DoubleVacuumTensorSymbol("t_B", (i1,), (a1,)) * ad(a1) * a(i1)
 
-T01 = (
-    DoubleVacuumTensorSymbol("o_A", (j1,), (b1,))
-    / DoubleVacuumTensorSymbol("e", (b1,), (j1,))
-    * bd(b1)
-    * b(j1)
-)
+T01 = DoubleVacuumTensorSymbol("t_A", (j1,), (b1,)) * bd(b1) * b(j1)
 
 T11 = (
     DoubleVacuumTensorSymbol(
-        "v",
+        "t",
         (
             i1,
             j1,
@@ -69,17 +60,6 @@ T11 = (
         (
             a1,
             b1,
-        ),
-    )
-    / DoubleVacuumTensorSymbol(
-        "e",
-        (
-            a1,
-            b1,
-        ),
-        (
-            i1,
-            j1,
         ),
     )
     * ad(a1)

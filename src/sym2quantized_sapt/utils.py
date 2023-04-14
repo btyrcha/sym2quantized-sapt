@@ -2,7 +2,7 @@ from functools import wraps
 from time import process_time
 
 from sympy import latex
-from sympy.core import Expr
+from sympy.core.add import Add
 
 
 # NOTE: https://dev.to/po5i/python-decorator-to-measure-function-s-execution-time-4d26
@@ -23,7 +23,7 @@ def timeit(func):
     return _time_it
 
 
-def format_expr(expression: Expr) -> str:
+def format_expr(expression: Add) -> str:
     """formats expression to str encoded LaTeX
 
     Args:
@@ -41,5 +41,9 @@ def format_expr(expression: Expr) -> str:
         # add sign
         else:
             expression_repr += f"& + {latex_str} \\\\ \n"
+
+    expression_repr = expression_repr.replace("v_A", "(v_A)")
+    expression_repr = expression_repr.replace("v_B", "(v_B)")
+    expression_repr = expression_repr.replace("s", "S")
 
     return expression_repr

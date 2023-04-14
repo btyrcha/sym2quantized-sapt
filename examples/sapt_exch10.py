@@ -4,8 +4,8 @@ in second-quantzation approach.
 
 Based on:
 Moszynski, Robert, Bogumil Jeziorski, and Krzysztof Szalewicz.
-"Many‐body theory of exchange effects in intermolecular interactions.
-Second‐quantization approach and comparison with full configuration interaction
+"Many-body theory of exchange effects in intermolecular interactions.
+Second-quantization approach and comparison with full configuration interaction
 results", The Journal of chemical physics 100 (2), 1312 (1994).
 """
 
