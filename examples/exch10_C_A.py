@@ -58,8 +58,9 @@ expr = wicks_double_vac(
     substitute_dummies=False,
     simplify_kronecker_deltas=False,
 )
-expr = substitute_dummies_double_vac(expr)
 expr = evaluate_deltas_double_vac(expr)
+expr = substitute_dummies_double_vac(expr)
+
 
 expr_linked = get_only_linked(expr)
 
@@ -92,8 +93,9 @@ exp_VC = wicks_double_vac(
 
 unlinked = -(exp_V * exp_P2C + exp_VC * exp_P2)
 unlinked = expand(unlinked)
-unlinked = substitute_dummies_double_vac(unlinked)
 unlinked = evaluate_deltas_double_vac(unlinked)
+unlinked = substitute_dummies_double_vac(unlinked)
+
 
 run_time = time() - start_time
 print(f"Calculations took: {run_time:.2f} s")
