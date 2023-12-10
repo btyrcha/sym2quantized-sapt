@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 requirements = [
     "numpy>=1.19.5,<1.27.0",
@@ -8,7 +8,22 @@ requirements = [
 
 setup(
     name="py-quantized-sapt",
+    version="0.1.0",
+    author="Bartosz Tyrcha",
+    author_email="bartektyrcha123@gmail.com",
+    maintainer="Filip Brzek",
+    maintainer_email="filip.brzek@gmail.com",
+    description="sympy based package for second quantized operator algebra in SAPT",
+    long_description=(
+        "Collection of extensions to sympy second-quant module, that "
+        "allows generating of linked part of expectation value of an "
+        " operator within SAPT framework, "
+        "using extension of Wick theorem for a case of product of fermi vacuum."
+    ),
+    long_description_content_type="text/x-rst",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=requirements,
+    python_requires=">3.8,<3.13",
+    zip_safe=True,
 )
