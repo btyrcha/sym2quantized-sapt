@@ -71,7 +71,7 @@ def _get_code_str(
 ) -> str:
     indices = ",".join(cont_ind)
     if uncont_ind:
-        indices += "->" + "".join(uncont_ind)
+        indices += "->" + "".join(sorted(uncont_ind))
 
     if pretty_indices:
         indices = _pretty_indices_names(indices)
@@ -81,6 +81,8 @@ def _get_code_str(
     variables = ", ".join(variables)
     variables = variables.replace("v_A", "vA")
     variables = variables.replace("v_B", "vB")
+    variables = variables.replace("o_A", "omegaA")
+    variables = variables.replace("o_B", "omegaB")
 
     code_str = 'np.einsum("{0}", {1})'.format(indices, variables)
 
@@ -118,7 +120,7 @@ def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
             uncont_ind.append(elem)
 
     if uncont_ind:
-        indices += "->" + "".join(uncont_ind)
+        indices += "->" + "".join(sorted(uncont_ind))
 
     if pretty_indices:
         indices = _pretty_indices_names(indices)
