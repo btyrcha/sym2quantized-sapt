@@ -418,7 +418,6 @@ def substitute_dummies_double_vac(expr, pretty_indices=None):
     # if pretty_indices update names
     if pretty_indices is not None:
         names.update(pretty_indices)
-        print(names)
 
     dummies = expr.atoms(Dummy)
     a = b = i = j = p = q = 0
