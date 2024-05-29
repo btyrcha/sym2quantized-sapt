@@ -9,10 +9,6 @@ stages:
   - test
   - publish
 
-default:
-  tags:
-    - main
-
 workflow:
   rules:
     # For merge requests, create a pipeline.
@@ -36,7 +32,7 @@ python-3.8-build:
     - python3 -m pip install -r requirements.txt
   script:
     - python3 -m pip install -e .
-  tags: [docker, linux]
+
   cache:
     policy: pull-push
 
@@ -51,7 +47,7 @@ format-check:
   # non-zero output of --check if something would change
   script:
     - pre-commit install && pre-commit run -a
-  tags: [docker, linux]
+
 
 # pylint check for current MR
 pylint-mr-check:
@@ -64,7 +60,7 @@ pylint-mr-check:
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
   script:
     - .gitlab/ci/utils/lint_python_changes.sh
-  tags: [docker, linux]
+
   allow_failure: False
 
 # pylint check for whole codebase
@@ -80,7 +76,7 @@ pylint-check:
     - echo "Pylint score was $score"
     # TODO: export badge as artifact
     #- python3 -m anybadge --value=$score --file=pylint.svg --linter pylint
-  tags: [docker, linux]
+
   # make failure non-blocking for now
   allow_failure: True
 
@@ -100,6 +96,6 @@ python-3.8-test:
     # ensure all tests were run
     #- coverage report --fail-under 100 --include tests/*
   when: on_success
-  tags: [docker, linux]
+
   cache:
     policy: pull
