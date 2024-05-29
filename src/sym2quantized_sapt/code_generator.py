@@ -71,7 +71,7 @@ def _get_code_str(
 ) -> str:
     indices = ",".join(cont_ind)
     if uncont_ind:
-        indices += "->" + "".join(sorted(uncont_ind))
+        indices += "->" + "".join(uncont_ind)
 
     if pretty_indices:
         indices = _pretty_indices_names(indices)
@@ -120,7 +120,7 @@ def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
             uncont_ind.append(elem)
 
     if uncont_ind:
-        indices += "->" + "".join(sorted(uncont_ind))
+        indices += "->" + "".join(uncont_ind)
 
     if pretty_indices:
         indices = _pretty_indices_names(indices)
