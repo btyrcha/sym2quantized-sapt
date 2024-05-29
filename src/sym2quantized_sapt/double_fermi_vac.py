@@ -373,7 +373,7 @@ def get_fully_contracted(expr):
         return expr
 
 
-def substitute_dummies_double_vac(expr):
+def substitute_dummies_double_vac(expr, pretty_indices=None):
     """
     Substiutute Dummy indicies systematicaly across the expresion
     making it posible to idenify terms that only differ due to index names.
@@ -385,6 +385,16 @@ def substitute_dummies_double_vac(expr):
     j, j_1, j_2, ... - hole indicies of molecule B,
     p, p_1, p_2, ... - general idnicies of molecule A,
     q, q_1, q_2, ... - general idnicies of molecule B.
+
+    For custom indices names provide 'pretty_indices' dict:
+    pretty_indices = {
+        "above_molA": "custom_index_name",
+        "above_molB": "custom_index_name",
+        "below_molA": "custom_index_name",
+        "below_molB": "custom_index_name",
+        "general_molA": "custom_index_name",
+        "general_molB": "custom_index_name",
+    }
     """
 
     molA_aboves = []
@@ -395,6 +405,20 @@ def substitute_dummies_double_vac(expr):
     molB_belows = []
     molB_generals = []
 
+    # default names
+    names = {
+        "above_molA": "a",
+        "above_molB": "b",
+        "below_molA": "i",
+        "below_molB": "j",
+        "general_molA": "p",
+        "general_molB": "q",
+    }
+
+    # if pretty_indices update names
+    if pretty_indices is not None:
+        names.update(pretty_indices)
+
     dummies = expr.atoms(Dummy)
     a = b = i = j = p = q = 0
     for elem in dummies:
@@ -403,50 +427,50 @@ def substitute_dummies_double_vac(expr):
         if assum.get("is_molA"):
             if assum.get("above_fermi"):
                 if a == 0:
-                    index = Dummy("a", **assum)
+                    index = Dummy(names["above_molA"], **assum)
                 else:
-                    index = Dummy("a_{0}".format(a), **assum)
+                    index = Dummy(names["above_molA"] + f"_{a}", **assum)
                 molA_aboves.append(index)
                 a += 1
 
             elif assum.get("below_fermi"):
                 if i == 0:
-                    index = Dummy("i", **assum)
+                    index = Dummy(names["below_molA"], **assum)
                 else:
-                    index = Dummy("i_{0}".format(i), **assum)
+                    index = Dummy(names["below_molA"] + f"_{i}", **assum)
                 molA_belows.append(index)
                 i += 1
 
             else:
                 if p == 0:
-                    index = Dummy("p", **assum)
+                    index = Dummy(names["general_molA"], **assum)
                 else:
-                    index = Dummy("p_{0}".format(p), **assum)
+                    index = Dummy(names["general_molA"] + f"_{p}", **assum)
                 molA_generals.append(index)
                 p += 1
 
         if assum.get("is_molB"):
             if assum.get("above_fermi"):
                 if b == 0:
-                    index = Dummy("b", **assum)
+                    index = Dummy(names["above_molB"], **assum)
                 else:
-                    index = Dummy("b_{0}".format(b), **assum)
+                    index = Dummy(names["above_molB"] + f"_{b}", **assum)
                 molB_aboves.append(index)
                 b += 1
 
             elif assum.get("below_fermi"):
                 if j == 0:
-                    index = Dummy("j", **assum)
+                    index = Dummy(names["below_molB"], **assum)
                 else:
-                    index = Dummy("j_{0}".format(j), **assum)
+                    index = Dummy(names["below_molB"] + f"_{j}", **assum)
                 molB_belows.append(index)
                 j += 1
 
             else:
                 if q == 0:
-                    index = Dummy("q", **assum)
+                    index = Dummy(names["general_molB"], **assum)
                 else:
-                    index = Dummy("q_{0}".format(q), **assum)
+                    index = Dummy(names["general_molB"] + f"_{q}", **assum)
                 molB_generals.append(index)
                 q += 1
 

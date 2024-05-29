@@ -81,6 +81,8 @@ def _get_code_str(
     variables = ", ".join(variables)
     variables = variables.replace("v_A", "vA")
     variables = variables.replace("v_B", "vB")
+    variables = variables.replace("o_A", "omegaA")
+    variables = variables.replace("o_B", "omegaB")
 
     code_str = 'np.einsum("{0}", {1})'.format(indices, variables)
 
