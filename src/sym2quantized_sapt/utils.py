@@ -1,7 +1,7 @@
 from functools import wraps
 from time import process_time
 
-from sympy import latex
+from sympy import latex, S
 from sympy.core.add import Add
 
 
@@ -32,6 +32,10 @@ def format_expr(expression: Add) -> str:
     Returns:
         str: expression LaTeX string
     """
+
+    if expression is S.Zero:
+        return "0"
+
     expression_repr = ""
     for arg in expression.args:
         latex_str = latex(arg)
@@ -44,6 +48,14 @@ def format_expr(expression: Add) -> str:
 
     expression_repr = expression_repr.replace("v_A", "(v_A)")
     expression_repr = expression_repr.replace("v_B", "(v_B)")
-    expression_repr = expression_repr.replace("s", "S")
+    expression_repr = expression_repr.replace("o_A", "(o_A)")
+    expression_repr = expression_repr.replace("o_B", "(o_B)")
+    expression_repr = expression_repr.replace("t_A", "(t_A)")
+    expression_repr = expression_repr.replace("t_B", "(t_B)")
+    expression_repr = expression_repr.replace("s^", "S^")
+    expression_repr = expression_repr.replace("1.0", "1")
+    expression_repr = expression_repr.replace("2.0", "2")
+    expression_repr = expression_repr.replace("4.0", "4")
+    expression_repr = expression_repr.replace("8.0", "8")
 
     return expression_repr
