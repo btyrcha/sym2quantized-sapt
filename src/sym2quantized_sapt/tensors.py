@@ -29,15 +29,15 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
         )
 
     def _latex(self, printer):
-        # NOTE: printer is not supported currently
-        if (not len(self.args[1])) and (not len(self.args[1])):
-            return "%s" % (self.args[0])
+        latex_str = "%s" % (self.args[0])
 
-        return "%s^{%s}_{%s}" % (
-            self.args[0],
-            "".join([i.name for i in self.args[1]]),
-            "".join([i.name for i in self.args[2]]),
-        )
+        if len(self.args[1]):
+            latex_str += "^{%s}" % "".join([i.name for i in self.args[1]])
+
+        if len(self.args[2]):
+            latex_str += "_{%s}" % "".join([i.name for i in self.args[2]])
+
+        return latex_str
 
     def __str__(self):
         return "%s(%s,%s)" % self.args
