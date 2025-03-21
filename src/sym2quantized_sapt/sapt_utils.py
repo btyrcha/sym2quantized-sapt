@@ -168,7 +168,7 @@ def get_Pn_operator(n: int) -> Expr:
     upper_indicies_B = []
     lower_indicies_B = []
 
-    for i in range(m):
+    for i in range(1, m + 1):
         upper_indicies_A.append(
             symbols("p_{0}".format(i), is_molA=True, cls=Dummy)
         )

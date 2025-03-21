@@ -3,7 +3,6 @@ from sympy.physics.secondquant import (
     CreateFermion,
     NO,
     contraction,
-    _get_ordered_dummies,
 )
 
 from sympy import (
@@ -13,6 +12,7 @@ from sympy import (
     KroneckerDelta,
     Dummy,
     sympify,
+    latex,
 )
 from sympy import expand as sy_expand
 
@@ -23,6 +23,7 @@ from .operators import (
     CreateFermion_B,
     DoubleFermiVaccum,
 )
+from .tensors import DoubleVacuumTensorSymbol
 
 
 class NO_double_vac:
@@ -373,6 +374,145 @@ def get_fully_contracted(expr):
         return expr
 
 
+def _get_ordered_dummies_double_vac(term):
+    """
+    Returns ordered list of dummy indices from term.
+
+    Is nesessary for consistent substitution of dummies betwent terms,
+    which allows for substitiution of equivalent terms.
+    """
+
+    factors = Mul.make_args(term)
+
+    def _get_idx_type(idx):
+        if isinstance(idx, Dummy):
+            assum = idx.assumptions0
+
+            if assum.get("is_molA"):
+                if assum.get("above_fermi"):
+                    return "a"
+
+                elif assum.get("below_fermi"):
+                    return "i"
+
+                else:
+                    return "p"
+
+            if assum.get("is_molB"):
+                if assum.get("above_fermi"):
+                    return "b"
+
+                elif assum.get("below_fermi"):
+                    return "j"
+
+                else:
+                    return "q"
+
+        else:
+            return latex(idx)
+
+    def _get_tensors_with_dummy(dummy):
+        representations = []
+        tensors_pos = []
+        dummy_pos = []
+
+        for f in factors:
+            if dummy in f.atoms(Dummy):
+                if isinstance(f, DoubleVacuumTensorSymbol):
+                    upper = f.upper()
+                    lower = f.lower()
+
+                    rep = f"{f.symbol()}({list(map(_get_idx_type, upper))},{list(map(_get_idx_type, lower))})"
+                    representations.append(rep)
+
+                    f_pos = factors.index(f)
+                    tensors_pos.append(f_pos)
+
+                    pos = ""
+                    if dummy in upper:
+                        pos += f"u{upper.index(dummy)}"
+                    if dummy in lower:
+                        pos += f"l{lower.index(dummy)}"
+                    dummy_pos.append(pos)
+
+                elif isinstance(f, AnnihilateFermion_A):
+                    rep = f"a({_get_idx_type(dummy)})"
+                    representations.append(rep)
+
+                    pos = "l0"
+                    dummy_pos.append(pos)
+
+                elif isinstance(f, AnnihilateFermion_B):
+                    rep = f"b({_get_idx_type(dummy)})"
+                    representations.append(rep)
+
+                    pos = "l0"
+                    dummy_pos.append(pos)
+
+                elif isinstance(f, CreateFermion_A):
+                    rep = f"ad({_get_idx_type(dummy)})"
+                    representations.append(rep)
+
+                    pos = "u0"
+                    dummy_pos.append(pos)
+
+                elif isinstance(f, CreateFermion_B):
+                    rep = f"bd({_get_idx_type(dummy)})"
+                    representations.append(rep)
+
+                    pos = "u0"
+                    dummy_pos.append(pos)
+
+                elif isinstance(f, NO):
+                    for farg in f.args:
+                        if isinstance(farg, AnnihilateFermion_A):
+                            rep = f"a({_get_idx_type(dummy)})"
+                            representations.append(rep)
+
+                            pos = "l0"
+                            dummy_pos.append(pos)
+
+                        elif isinstance(farg, AnnihilateFermion_B):
+                            rep = f"b({_get_idx_type(dummy)})"
+                            representations.append(rep)
+
+                            pos = "l0"
+                            dummy_pos.append(pos)
+
+                        elif isinstance(farg, CreateFermion_A):
+                            rep = f"ad({_get_idx_type(dummy)})"
+                            representations.append(rep)
+
+                            pos = "u0"
+                            dummy_pos.append(pos)
+
+                        elif isinstance(farg, CreateFermion_B):
+                            rep = f"bd({_get_idx_type(dummy)})"
+                            representations.append(rep)
+
+                            pos = "u0"
+                            dummy_pos.append(pos)
+
+        return tuple(representations), tuple(tensors_pos), tuple(dummy_pos)
+
+    def _get_key(dummy):
+        idx_type = _get_idx_type(dummy)
+        tensors_rep, tensors_pos, dummy_pos = _get_tensors_with_dummy(dummy)
+
+        return (idx_type, *tensors_rep, *tensors_pos, *dummy_pos)
+
+    dummies = term.atoms(Dummy)
+    ordered = sorted(dummies, key=_get_key)
+
+    # # CHECK: all dummies must have a unique non-random key
+    # keys = [_get_key(d) for d in dummies]
+    # if len(dummies) != len(set(keys)):
+    #     for elem in keys:
+    #         print(elem)
+
+    return ordered
+
+
 def substitute_dummies_double_vac(expr, pretty_indices=None):
     """
     Substiutute Dummy indicies systematicaly across the expresion
@@ -478,7 +618,7 @@ def substitute_dummies_double_vac(expr, pretty_indices=None):
     terms = Add.make_args(expr)
     new_terms = []
     for term in terms:
-        ordered = _get_ordered_dummies(term)
+        ordered = _get_ordered_dummies_double_vac(term)
 
         a = iter(molA_aboves)
         i = iter(molA_belows)
