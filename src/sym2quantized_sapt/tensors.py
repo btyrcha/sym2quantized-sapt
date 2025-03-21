@@ -65,7 +65,6 @@ def _use_symmetries(upper, lower, symmetries):
     lower_sorted = Tuple(*sorted(lower, key=_idx_sortkey))
 
     if upper != upper_sorted or lower != lower_sorted:
-
         for sym in symmetries:
             try:
                 upper_sym = sym[0]
