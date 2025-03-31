@@ -683,3 +683,14 @@ def commutator(A, B):
     comm = sy_expand(comm)
 
     return comm
+
+
+def anticommutator(A, B):
+    """
+    Commutator of two operators A and B.
+    """
+
+    comm = A * B + B * A
+    comm = sy_expand(comm)
+
+    return comm
