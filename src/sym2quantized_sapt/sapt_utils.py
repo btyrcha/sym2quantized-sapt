@@ -1,8 +1,24 @@
-from sympy import symbols, Dummy
+import itertools
+from sympy import symbols, Dummy, factorial
 from sympy.core import Expr, Mul, S
-from sym2quantized_sapt.operators import ad, a, bd, b
+from sympy.physics.secondquant import Dagger
+from sym2quantized_sapt.operators import (
+    CreateFermion_A,
+    CreateFermion_B,
+    AnnihilateFermion_A,
+    AnnihilateFermion_B,
+)
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
-from math import factorial
+from sym2quantized_sapt.double_fermi_vac import (
+    wicks_double_vac,
+    substitute_dummies_double_vac,
+)
+
+
+A = AnnihilateFermion_A
+Ad = CreateFermion_A
+B = AnnihilateFermion_B
+Bd = CreateFermion_B
 
 
 def get_a_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
@@ -31,8 +47,8 @@ def get_a_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
                 symbols("q_{0}".format(i), is_molA=True, cls=Dummy)
             )
 
-    creation_part = [ad(index) for index in upper_indicies]
-    annihilation_part = [a(index) for index in reversed(lower_indicies)]
+    creation_part = [Ad(index) for index in upper_indicies]
+    annihilation_part = [A(index) for index in reversed(lower_indicies)]
     return Mul(*creation_part, *annihilation_part)
 
 
@@ -62,8 +78,8 @@ def get_b_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
                 symbols("s_{0}".format(i), is_molB=True, cls=Dummy)
             )
 
-    creation_part = [bd(index) for index in upper_indicies]
-    annihilation_part = [b(index) for index in reversed(lower_indicies)]
+    creation_part = [Bd(index) for index in upper_indicies]
+    annihilation_part = [B(index) for index in reversed(lower_indicies)]
     return Mul(*creation_part, *annihilation_part)
 
 
@@ -92,9 +108,9 @@ def get_V_operator() -> Expr:
     V0 = DoubleVacuumTensorSymbol("V_0", (), ())
 
     V = (
-        v * ad(q) * a(p) * bd(s) * b(r)
-        + vA * bd(s) * b(r)
-        + vB * ad(q) * a(p)
+        v * Ad(q) * A(p) * Bd(s) * B(r)
+        + vA * Bd(s) * B(r)
+        + vB * Ad(q) * A(p)
         + V0
     )
 
@@ -115,10 +131,10 @@ def get_P2_operator() -> Expr:
     P2 = (
         -DoubleVacuumTensorSymbol("s", (r,), (q,))
         * DoubleVacuumTensorSymbol("s", (p,), (s,))
-        * ad(q)
-        * a(p)
-        * bd(s)
-        * b(r)
+        * Ad(q)
+        * A(p)
+        * Bd(s)
+        * B(r)
     )
 
     return P2
@@ -143,8 +159,8 @@ def get_P4_operator() -> Expr:
         * DoubleVacuumTensorSymbol("s", (p2,), (s2,))
     )
 
-    a_part = ad(q1) * ad(q2) * a(p2) * a(p1)
-    b_part = bd(s1) * bd(s2) * b(r2) * b(r1)
+    a_part = Ad(q1) * Ad(q2) * A(p2) * A(p1)
+    b_part = Bd(s1) * Bd(s2) * B(r2) * B(r1)
 
     return P_tensor * a_part * b_part
 
@@ -183,6 +199,7 @@ def get_Pn_operator(n: int) -> Expr:
         )
 
     coeff = ((-1) ** m) / (factorial(m) ** 2)
+    coeff = float(coeff)
     if coeff == -1:
         P_tensor = -1 * S.One
     else:
@@ -197,12 +214,12 @@ def get_Pn_operator(n: int) -> Expr:
             "s", (upper_indicies_A[i],), (lower_indicies_B[i],)
         )
 
-    creation_part_A = [ad(index) for index in lower_indicies_A]
-    annihilation_part_A = [a(index) for index in reversed(upper_indicies_A)]
+    creation_part_A = [Ad(index) for index in lower_indicies_A]
+    annihilation_part_A = [A(index) for index in reversed(upper_indicies_A)]
     a_part = Mul(*creation_part_A, *annihilation_part_A)
 
-    creation_part_B = [bd(index) for index in lower_indicies_B]
-    annihilation_part_B = [b(index) for index in reversed(upper_indicies_B)]
+    creation_part_B = [Bd(index) for index in lower_indicies_B]
+    annihilation_part_B = [B(index) for index in reversed(upper_indicies_B)]
     b_part = Mul(*creation_part_B, *annihilation_part_B)
 
     return P_tensor * a_part * b_part
