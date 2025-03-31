@@ -223,3 +223,78 @@ def get_Pn_operator(n: int) -> Expr:
     b_part = Mul(*creation_part_B, *annihilation_part_B)
 
     return P_tensor * a_part * b_part
+
+
+def get_R_nm(n: int, m: int, operator: Expr) -> Expr:
+    """
+    Calculates the resolvent of excitations (n,m) acting on the `operator`.
+    """
+
+    coeff = 1 / (factorial(n) * factorial(m)) ** 2
+    coeff = float(coeff)
+
+    particle_indicies_A = []
+    hole_indicies_A = []
+    particle_indicies_B = []
+    hole_indicies_B = []
+
+    for i in range(1, n + 1):
+        particle_indicies_A.append(
+            symbols(
+                "a_{0}".format(i), above_fermi=True, is_molA=True, cls=Dummy
+            )
+        )
+        hole_indicies_A.append(
+            symbols(
+                "i_{0}".format(i), below_fermi=True, is_molA=True, cls=Dummy
+            )
+        )
+
+    for i in range(1, m + 1):
+        particle_indicies_B.append(
+            symbols(
+                "b_{0}".format(i), above_fermi=True, is_molB=True, cls=Dummy
+            )
+        )
+        hole_indicies_B.append(
+            symbols(
+                "j_{0}".format(i), below_fermi=True, is_molB=True, cls=Dummy
+            )
+        )
+
+    creation_part_A = [Ad(index) for index in hole_indicies_A]
+    annihilation_part_A = [A(index) for index in reversed(particle_indicies_A)]
+    a_part = Mul(*creation_part_A, *annihilation_part_A)
+
+    creation_part_B = [Bd(index) for index in hole_indicies_B]
+    annihilation_part_B = [B(index) for index in reversed(particle_indicies_B)]
+    b_part = Mul(*creation_part_B, *annihilation_part_B)
+
+    tensors = wicks_double_vac(
+        a_part * b_part * operator,
+        keep_only_fully_contracted=True,
+        substitute_dummies=False,
+    )
+
+    # figure out denominator symmetries
+    perm_A = itertools.permutations(range(0, n))
+    perm_B = itertools.permutations(range(n, n + m))
+
+    perms = [
+        tuple([*perm[0]] + [*perm[1]])
+        for perm in itertools.product(perm_A, perm_B)
+    ]
+
+    e_symmetries = tuple(itertools.product(perms, perms))
+
+    denom = DoubleVacuumTensorSymbol(
+        "e^{-1}",
+        hole_indicies_A + hole_indicies_B,
+        particle_indicies_A + particle_indicies_B,
+        e_symmetries,
+    )
+
+    expr = coeff * tensors * Dagger(a_part) * Dagger(b_part) * denom
+    expr = substitute_dummies_double_vac(expr)
+
+    return expr
