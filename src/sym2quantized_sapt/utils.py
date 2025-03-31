@@ -2,7 +2,7 @@ from functools import wraps
 from time import process_time
 
 from sympy import latex, S
-from sympy.core.add import Add
+from sympy.core.add import Add, Mul, Expr
 
 
 # NOTE: https://dev.to/po5i/python-decorator-to-measure-function-s-execution-time-4d26
@@ -23,7 +23,7 @@ def timeit(func):
     return _time_it
 
 
-def format_expr(expression: Add) -> str:
+def format_expr(expression: Expr) -> str:
     """formats expression to str encoded LaTeX
 
     Args:
@@ -36,26 +36,30 @@ def format_expr(expression: Add) -> str:
     if expression is S.Zero:
         return "0"
 
-    expression_repr = ""
-    for arg in expression.args:
-        latex_str = latex(arg)
-        # substract sign
-        if latex_str[0] == "-":
-            expression_repr += f"& {latex_str} \\\\ \n"
-        # add sign
-        else:
-            expression_repr += f"& + {latex_str} \\\\ \n"
+    if isinstance(expression, Mul):
+        return latex(expression)
 
-    expression_repr = expression_repr.replace("v_A", "(v_A)")
-    expression_repr = expression_repr.replace("v_B", "(v_B)")
-    expression_repr = expression_repr.replace("o_A", "(o_A)")
-    expression_repr = expression_repr.replace("o_B", "(o_B)")
-    expression_repr = expression_repr.replace("t_A", "(t_A)")
-    expression_repr = expression_repr.replace("t_B", "(t_B)")
-    expression_repr = expression_repr.replace("s^", "S^")
-    expression_repr = expression_repr.replace("1.0", "1")
-    expression_repr = expression_repr.replace("2.0", "2")
-    expression_repr = expression_repr.replace("4.0", "4")
-    expression_repr = expression_repr.replace("8.0", "8")
+    if isinstance(expression, Add):
+        expression_repr = ""
+        for arg in expression.args:
+            latex_str = latex(arg)
+            # substract sign
+            if latex_str[0] == "-":
+                expression_repr += f"& {latex_str} \\\\ \n"
+            # add sign
+            else:
+                expression_repr += f"& + {latex_str} \\\\ \n"
 
-    return expression_repr
+        expression_repr = expression_repr.replace("v_A", "(v_A)")
+        expression_repr = expression_repr.replace("v_B", "(v_B)")
+        expression_repr = expression_repr.replace("o_A", "(o_A)")
+        expression_repr = expression_repr.replace("o_B", "(o_B)")
+        expression_repr = expression_repr.replace("t_A", "(t_A)")
+        expression_repr = expression_repr.replace("t_B", "(t_B)")
+        expression_repr = expression_repr.replace("s^", "S^")
+        expression_repr = expression_repr.replace("1.0", "1")
+        expression_repr = expression_repr.replace("2.0", "2")
+        expression_repr = expression_repr.replace("4.0", "4")
+        expression_repr = expression_repr.replace("8.0", "8")
+
+        return expression_repr
