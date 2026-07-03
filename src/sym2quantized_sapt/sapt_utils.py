@@ -288,7 +288,7 @@ def get_R_nm(n: int, m: int, operator: Expr) -> Expr:
     e_symmetries = tuple(itertools.product(perms, perms))
 
     denom = DoubleVacuumTensorSymbol(
-        "e^{-1}",
+        "e",
         hole_indicies_A + hole_indicies_B,
         particle_indicies_A + particle_indicies_B,
         e_symmetries,
