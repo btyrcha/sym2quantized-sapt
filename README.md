@@ -1,44 +1,75 @@
-# sympy2quantized-sapt
+# sym2quantized-sapt
 
-group's repository on sympy based scripts to automate formulas derivation
+[![CI](https://github.com/btyrcha/sym2quantized-sapt/actions/workflows/ci.yml/badge.svg)](https://github.com/btyrcha/sym2quantized-sapt/actions/workflows/ci.yml)
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 
-## pre-configuration
-at least python3.6 is required
-```shell
-python3 --version
-```
+A [SymPy](https://www.sympy.org)-based package for second-quantized operator
+algebra in **SAPT** (Symmetry-Adapted Perturbation Theory of intermolecular
+interactions).
 
-install virtual enviroment module
+It extends SymPy's `sympy.physics.secondquant` module to work in the **double
+Fermi vacuum** — the product of two independent Fermi vacuums, one for each
+monomer (A and B) of a dimer. On top of that it provides a generalized Wick's
+theorem, dummy-index canonicalization, RHF spin integration, and `numpy.einsum`
+code generation, which together let you derive closed-form SAPT energy
+expressions symbolically.
 
-```shell
-python3 -m pip install virtualenv
-```
+## Installation
 
-in repository directory create venv
-
-```shell
-python3 -m virtualenv venv
-```
-
-activate virtual enviroment and install the dependencies
+Python 3.8 is the reference interpreter (the pinned dependencies target it).
 
 ```shell
+python3 -m venv venv
 source venv/bin/activate
-python3 -m pip install -r requirements.txt -r requirements_dev.txt
+python3 -m pip install -r requirements.txt -r requirements-dev.txt
+python3 -m pip install -e .
 ```
 
-check if example ```SAPT``` sympy script runs
-```shell
-python3 examples/sapt_pol20.py
+## Quick start
+
+Derive the first-order SAPT electrostatic energy (`E_pol^{(10)}`):
+
+```python
+from sympy import symbols, Dummy, latex
+from sym2quantized_sapt.sapt_utils import get_V_operator
+from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
+from sym2quantized_sapt.spin_integrator import spin_integration
+
+V = get_V_operator()
+E10 = wicks_double_vac(V, keep_only_fully_contracted=True)
+E10 = spin_integration(E10)
+print(latex(E10))
 ```
 
-## install the development package
-```shell
-python3 -m pip install -e . --no-use-pep517
-```
+See the [`examples/`](examples/) directory for full derivations of the
+electrostatic, induction, dispersion, and exchange energies.
 
-## run the unit tests
+## Running the tests
+
 ```shell
+# fast tests (example runners and other heavy cases are marked `slow`)
 python3 -m pytest ./tests/
+
+# full suite, including the slow tests — note the custom `--slow` flag
+python3 -m pytest ./tests/ --slow
 ```
 
+Many tests assert exact `sympy.latex(...)` output, so keep `sympy==1.8.0`
+(see `requirements.txt`) when running them.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, style checks,
+and how derivations under `examples/` are tested.
+
+## License
+
+Distributed under the BSD 3-Clause License. See [LICENSE](LICENSE) for details.
+
+## Citation
+
+If you use this software in academic work, please cite it — see
+[CITATION.cff](CITATION.cff). The underlying SAPT formalism follows
+S. Rybak, B. Jeziorski, K. Szalewicz,
+*J. Chem. Phys.* **95**, 6576 (1991).
