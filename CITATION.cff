@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "sym2quantized-sapt"
+abstract: >-
+  A SymPy-based package for second-quantized operator algebra in Symmetry-Adapted
+  Perturbation Theory (SAPT), extending SymPy's second-quantization module with a
+  generalized Wick's theorem for the product of two Fermi vacuums.
+type: software
+authors:
+  - family-names: Tyrcha
+    given-names: Bartosz
+  - family-names: Brzęk
+    given-names: Filip
+  - family-names: Żuchowski
+    given-names: Piotr
+version: 0.1.1
+date-released: 2023-12-10
+license: BSD-3-Clause
+repository-code: "https://github.com/btyrcha/sym2quantized-sapt"
+url: "https://github.com/btyrcha/sym2quantized-sapt"
+keywords:
+  - SAPT
+  - quantum chemistry
+  - second quantization
+  - Wick's theorem
+  - SymPy
+references:
+  - type: article
+    title: "Many-body symmetry-adapted perturbation theory of intermolecular interactions. H2O and HF dimers"
+    authors:
+      - family-names: Rybak
+        given-names: Stanisław
+      - family-names: Jeziorski
+        given-names: Bogumił
+      - family-names: Szalewicz
+        given-names: Krzysztof
+    journal: "The Journal of Chemical Physics"
+    volume: 95
+    issue: 9
+    year: 1991
+    start: 6576
+    doi: "10.1063/1.461528"

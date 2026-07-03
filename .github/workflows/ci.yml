@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  format:
+    name: format (pre-commit)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements-dev.txt
+      - run: pre-commit run --all-files
+
+  test:
+    name: test (py3.8)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+      - run: python -m pip install --upgrade pip
+      # Pinned runtime deps (numpy/scipy/sympy) are 3.8-era; the test suite
+      # asserts exact SymPy LaTeX output against sympy==1.8.0, so CI runs on the
+      # pinned stack. Broadening to 3.9-3.12 requires modernizing these pins and
+      # revalidating the string-exact expectations.
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pip install -e .
+      - run: coverage run -m pytest tests/ --slow
+      - run: coverage report
+
+  lint:
+    name: pylint (non-blocking)
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pip install -e .
+      - run: pylint --rcfile=.pylintrc src/
