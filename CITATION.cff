@@ -13,11 +13,19 @@ authors:
     given-names: Filip
   - family-names: Żuchowski
     given-names: Piotr
-version: 0.1.1
-date-released: 2023-12-10
+version: 0.2.0
+date-released: 2026-07-06
 license: BSD-3-Clause
 repository-code: "https://github.com/btyrcha/sym2quantized-sapt"
 url: "https://github.com/btyrcha/sym2quantized-sapt"
+doi: "10.5281/zenodo.21215565"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.21215565"
+    description: "Concept DOI — always resolves to the latest version."
+  - type: doi
+    value: "10.5281/zenodo.21215566"
+    description: "DOI for version v0.2.0."
 keywords:
   - SAPT
   - quantum chemistry

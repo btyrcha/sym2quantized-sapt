@@ -3,6 +3,7 @@
 [![CI](https://github.com/btyrcha/sym2quantized-sapt/actions/workflows/ci.yml/badge.svg)](https://github.com/btyrcha/sym2quantized-sapt/actions/workflows/ci.yml)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21215565.svg)](https://doi.org/10.5281/zenodo.21215565)
 
 A [SymPy](https://www.sympy.org)-based package for second-quantized operator
 algebra in **SAPT** (Symmetry-Adapted Perturbation Theory of intermolecular
@@ -70,6 +71,9 @@ Distributed under the BSD 3-Clause License. See [LICENSE](LICENSE) for details.
 ## Citation
 
 If you use this software in academic work, please cite it — see
-[CITATION.cff](CITATION.cff). The underlying SAPT formalism follows
+[CITATION.cff](CITATION.cff). Each GitHub release is archived on Zenodo with a
+version-specific DOI; the concept DOI
+[10.5281/zenodo.21215565](https://doi.org/10.5281/zenodo.21215565) always
+resolves to the latest version. The underlying SAPT formalism follows
 S. Rybak, B. Jeziorski, K. Szalewicz,
 *J. Chem. Phys.* **95**, 6576 (1991).
