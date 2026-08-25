@@ -17,9 +17,11 @@ The stray `src/py_quantized_sapt.egg-info/` is leftover build metadata, not a se
 ## Commands
 
 ```shell
-# Environment + editable install
-python3 -m pip install -r requirements.txt -r requirements-dev.txt
-python3 -m pip install -e .
+# Environment + editable install (setup.py is the single source of truth;
+# the `dev` extra carries pytest/coverage/black/pylint/pre-commit/build)
+python3 -m pip install -e ".[dev]"
+
+# or: conda env create -f environment.yml && conda activate sym2quantized-sapt
 
 # Fast tests (the example-runner and other heavy cases are marked `slow` and skipped by default)
 python3 -m pytest ./tests/
@@ -39,15 +41,16 @@ pre-commit run -a
 python3 -m pylint --rcfile=.pylintrc src/
 ```
 
-CI runs on Python 3.8 (GitHub Actions, `.github/workflows/ci.yml`). Supported range is `>3.8,<3.13`.
+CI runs on Python 3.8 (GitHub Actions, `.github/workflows/ci.yml`). Supported range is `>=3.8,<3.13`.
 
 ## Version sensitivity
 
 This package subclasses and reuses SymPy `secondquant` internals (`NO`, `contraction`,
 `TensorSymbol`, `Dagger`, dummy-substitution logic), so it is tightly coupled to SymPy's
-implementation. `requirements.txt` pins `sympy==1.8.0`; treat SymPy upgrades as breaking until
-proven otherwise. Tests assert on exact `latex()` output strings, so they double as regression
-guards against SymPy behavior changes.
+implementation. `setup.py` caps it at `sympy>=1.8.0,<1.13.0` — 1.13 changed `Float`/`int`
+equality and breaks coefficient formatting in `code_generator`. Treat SymPy upgrades as breaking
+until proven otherwise. Tests assert on exact `latex()` output strings, so they double as
+regression guards against SymPy behavior changes.
 
 ## Index convention (load-bearing)
 

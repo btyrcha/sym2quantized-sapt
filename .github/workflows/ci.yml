@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.8"
       - run: python -m pip install --upgrade pip
-      - run: pip install -r requirements-dev.txt
+      - run: pip install -e ".[dev]"
       - run: pre-commit run --all-files
 
   test:
@@ -28,12 +28,10 @@ jobs:
         with:
           python-version: "3.8"
       - run: python -m pip install --upgrade pip
-      # Pinned runtime deps (numpy/scipy/sympy) are 3.8-era; the test suite
-      # asserts exact SymPy LaTeX output against sympy==1.8.0, so CI runs on the
-      # pinned stack. Broadening to 3.9-3.12 requires modernizing these pins and
-      # revalidating the string-exact expectations.
-      - run: pip install -r requirements.txt -r requirements-dev.txt
-      - run: pip install -e .
+      # setup.py is the single source of truth for dependencies; the `dev`
+      # extra carries the tooling. The suite asserts exact SymPy LaTeX output,
+      # so sympy is capped below 1.13 there (see setup.py).
+      - run: pip install -e ".[dev]"
       - run: coverage run -m pytest tests/ --slow
       - run: coverage report
 
@@ -47,6 +45,5 @@ jobs:
         with:
           python-version: "3.8"
       - run: python -m pip install --upgrade pip
-      - run: pip install -r requirements.txt -r requirements-dev.txt
-      - run: pip install -e .
+      - run: pip install -e ".[dev]"
       - run: pylint --rcfile=.pylintrc src/
