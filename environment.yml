@@ -1,0 +1,28 @@
+# Minimal development environment for sym2quantized-sapt.
+#
+#   conda env create -f environment.yml
+#   conda activate sym2quantized-sapt
+#
+# The editable install and every dependency come from setup.py, which is the
+# single source of truth: `sympy` for runtime, the `dev` extra for tooling.
+# conda supplies only the interpreter and pip.
+#
+# sympy is the only third-party import in the package - numpy and scipy are
+# not imported anywhere in src/, tests/ or examples/, since code_generator
+# only *emits* np.einsum calls as strings. The full suite, slow example
+# scripts included, passes with neither package installed.
+#
+# NOTE: the only difference from CI is the Python version - CI runs 3.8.
+# Both resolve sympy to 1.12.1 from setup.py's >=1.8.0,<1.13.0 range, so dev
+# and CI exercise the same sympy. The full suite was verified green on both.
+
+name: sym2quantized-sapt
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -e .[dev]

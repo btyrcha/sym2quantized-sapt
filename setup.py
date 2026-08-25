@@ -1,9 +1,19 @@
 from setuptools import find_packages, setup
 
+# The <1.13.0 cap is load-bearing: sympy 1.13 changed Float/int equality and
+# breaks coefficient formatting in code_generator.
 requirements = [
-    "numpy>=1.19.5,<1.27.0",
-    "scipy>=1.5.4,<1.12.0",
-    "sympy>=1.5.1,<1.13.0",
+    "sympy>=1.8.0,<1.13.0",
+]
+
+# Development tooling: `pip install -e ".[dev]"`.
+dev_requirements = [
+    "black~=23.3.0",
+    "build",
+    "coverage",
+    "pre-commit",
+    "pylint",
+    "pytest",
 ]
 
 setup(
@@ -39,6 +49,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=requirements,
-    python_requires=">3.8,<3.13",
+    extras_require={"dev": dev_requirements},
+    python_requires=">=3.8,<3.13",
     zip_safe=True,
 )
