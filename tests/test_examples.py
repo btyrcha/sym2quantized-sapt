@@ -1,3 +1,4 @@
+import sys
 import logging
 import os
 import pathlib
@@ -6,7 +7,6 @@ import subprocess
 from typing import Generator
 
 import pytest
-
 
 EXAMPLES_DIR = (
     pathlib.Path(__file__).parent.absolute() / ".." / "examples"
@@ -71,15 +71,23 @@ def test_run_example(example_file: pathlib.Path, tmp_path: pathlib.Path):
     # copy the file to tmp_path
     shutil.copyfile(source_file, target_file)
 
+    # run as a subprocess call
+    completed_run = subprocess.run(
+        [sys.executable, target_file],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
     try:
-        # run as a subprocess call
-        completed_run = subprocess.run(
-            ["python3", target_file], stdout=subprocess.PIPE, check=True
-        )
         # assert script didn't crash
         completed_run.check_returncode()
 
-    except Exception as err:
-        # TODO: capture stdout of .run and log it here
-        logging.exception(err)
+    except subprocess.CalledProcessError as err:
+        logging.error(
+            "%s exited with %s\n--- stdout ---\n%s--- stderr ---\n%s",
+            example_file.name,
+            completed_run.returncode,
+            completed_run.stdout,
+            completed_run.stderr,
+        )
         raise err
