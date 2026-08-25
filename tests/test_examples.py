@@ -11,7 +11,7 @@ import pytest
 EXAMPLES_DIR = (
     pathlib.Path(__file__).parent.absolute() / ".." / "examples"
 ).absolute()
-EXAMPLES_BLACKLIST = ["coupled_cluster.py"]
+EXAMPLES_BLACKLIST = []
 
 
 def collect_example_files(
