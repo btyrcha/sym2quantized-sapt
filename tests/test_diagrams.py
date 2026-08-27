@@ -59,7 +59,6 @@ def test_passes_through_bare_tensor():
     assert get_only_linked(tensor) == tensor
 
 
-@pytest.mark.xfail()
 def test_scalar_term_without_tensors():
     """A coefficient-only Mul has no diagram, and must not crash."""
     x = symbols("x")

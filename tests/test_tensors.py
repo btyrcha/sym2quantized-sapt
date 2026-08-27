@@ -96,7 +96,6 @@ def test_dagger_swaps_indices_and_keeps_symmetries():
     assert len(daggered.get_symmetries()) == len(FULL_SYMMETRIES)
 
 
-@pytest.mark.xfail()
 def test_malformed_symmetry_entry():
     """A symmetry entry that is not an (upper, lower) pair."""
     a_1, a_2, i_1, i_2 = _pair_indices()
@@ -108,5 +107,5 @@ def test_malformed_symmetry_entry():
     assert exec_info.type == IndexError
     assert (
         exec_info.value.args[0]
-        == f"Symmetry should be (upper, lower) permutation pair, was {malformed[0]}!"
+        == f"Symmetry must be (upper, lower) permutation pair, was {malformed[0]}!"
     )
