@@ -32,8 +32,11 @@ jobs:
       # extra carries the tooling. The suite asserts exact SymPy LaTeX output,
       # so sympy is capped below 1.13 there (see setup.py).
       - run: pip install -e ".[dev]"
-      - run: coverage run -m pytest tests/ --slow
+      # Coverage measures the unit tests only
+      - run: coverage run -m pytest tests/
       - run: coverage report
+      # Examples are run just for their exit code
+      - run: pytest tests/ --slow -m slow
 
   lint:
     name: pylint (non-blocking)

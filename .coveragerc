@@ -1,5 +1,6 @@
 [run]
 branch=True
+source = src/sym2quantized_sapt
 
 [report]
 omit =
@@ -14,3 +15,4 @@ omit =
 
 skip_empty = true
 show_missing = true
+fail_under = 83
