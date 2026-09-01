@@ -166,10 +166,8 @@ def _get_tensor_symbol(upper, lower):
     ):  # J_as
         symbol = "J"
         h_lines = 0
-    else:  # temporary
-        print("Still missing something!", lower, upper)
-        symbol = "X"
-        h_lines = 0
+    else:
+        raise NotImplementedError(f"Missing symbol for X^{upper}_{lower}!")
 
     return symbol, h_lines
 
