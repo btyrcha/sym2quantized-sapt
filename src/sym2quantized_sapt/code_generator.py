@@ -1,4 +1,5 @@
 import string
+import re
 from sympy import Add, Mul, Expr, expand
 from sympy.physics.secondquant import TensorSymbol
 
@@ -20,48 +21,59 @@ def _psi4numpy_indices(index: str) -> str:
 
 
 def _pretty_indices_names(indices: str) -> str:
-    if "a_1" in indices:
-        indices = indices.replace("a_1", "A")
+    PRETTY_INDICES = {
+        "a": "a",
+        "b": "b",
+        "r": "r",
+        "s": "s",
+        "p": "p",
+        "q": "q",
+        "a_1": "A",
+        "b_1": "B",
+        "r_1": "R",
+        "s_1": "S",
+        "p_1": "P",
+        "q_1": "Q",
+    }
+    REPLACABLE_INDICES = set(PRETTY_INDICES.keys())
+    merged = "".join(indices.replace("->", ",").split(","))
+    unique_indices = set(re.findall(r"[a-z](?:_\d+)?", merged))
 
-    if "b_1" in indices:
-        indices = indices.replace("b_1", "B")
+    if unique_indices.issubset(REPLACABLE_INDICES):
+        pattern = re.compile(
+            "|".join(
+                re.escape(index_key)
+                for index_key in sorted(PRETTY_INDICES, key=len, reverse=True)
+            )
+        )
+        return pattern.sub(lambda m: PRETTY_INDICES[m.group(0)], indices)
 
-    if "r_1" in indices:
-        indices = indices.replace("r_1", "R")
-
-    if "s_1" in indices:
-        indices = indices.replace("s_1", "S")
-
-    if "a_2" in indices:
-        indices = indices.replace("a_2", "c")
-
-    if "b_2" in indices:
-        indices = indices.replace("b_2", "d")
-
-    if "a_3" in indices:
-        indices = indices.replace("a_3", "C")
-
-    if "b_3" in indices:
-        indices = indices.replace("b_3", "D")
-
-    return indices
+    raise ValueError("Code generator: `pretty_indices` cannot be applied!")
 
 
 def _replace_indices_names(indices: str) -> str:
     new_names = list(string.ascii_lowercase) + list(string.ascii_uppercase)
 
-    used_names = ["a", "b", "r", "s"]
+    used_names = {"a", "b", "r", "s"}
+    used_names |= {i for i in indices if i in new_names}
     for elem in used_names:
         new_names.remove(elem)
 
+    merged = "".join(indices.replace("->", ",").split(","))
+    unique_indices = list(dict.fromkeys(re.findall(r"[a-z](?:_\d+)?", merged)))
+    to_substitute = sorted(
+        (e for e in unique_indices if "_" in e), key=len, reverse=True
+    )
+
     new_indices = indices
-    for i, elem in enumerate(indices):
-        if elem == "_":
-            try:
-                old_name = "".join([indices[i - 1], elem, indices[i + 1]])
-                new_indices = new_indices.replace(old_name, new_names.pop(0))
-            except IndexError:
-                print("Too many indices!!! Not enough names for them.")
+    for elem in to_substitute:
+        try:
+            old_name = elem
+            new_indices = new_indices.replace(old_name, new_names.pop(0))
+        except IndexError as exc:
+            raise IndexError(
+                "Too many indices!!! Not enough names for them."
+            ) from exc
 
     return new_indices
 
@@ -178,9 +190,16 @@ def generate_einsum(expr: Expr, pretty_indices=False) -> str:
 
     Args:
         expr (Expr): SymPy expression for code generation
+        pretty_indices (bool): name the indices after the fixed table in
+            `_pretty_indices_names` instead of renaming every subscripted
+            index to an unused letter
 
     Returns:
         str: string with numpy code
+
+    Raises:
+        IndexError: the expression has more indices than there are names
+        ValueError: `pretty_indices` is set and an index is outside the table
     """
 
     expr = expand(expr)
