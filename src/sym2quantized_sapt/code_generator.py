@@ -5,6 +5,16 @@ from sympy.physics.secondquant import TensorSymbol
 
 
 def _psi4numpy_indices(index: str) -> str:
+    """
+    Renames a canonical dummy to the psi4numpy convention:
+    a -> r, b -> s, i -> a, j -> b (p and q are left alone).
+
+    NOTE: this is only injective on the canonical names produced by
+    `substitute_dummies_double_vac`. Every occurrence of the first
+    matching letter is replaced, so a name that already lives in the
+    target alphabet is mapped a second time: `r` stays `r` while a hole
+    named `a` also becomes `r`, and the two indices collapse into one.
+    """
     if "a" in index:
         index = index.replace("a", "r")
 
@@ -52,6 +62,18 @@ def _pretty_indices_names(indices: str) -> str:
 
 
 def _replace_indices_names(indices: str) -> str:
+    """
+    Renames every subscripted index (`a_1`, `p_10`, ...) to a single unused
+    letter, so that an einsum subscript stays one character per index.
+
+    Three rules keep the renaming faithful:
+    - the pool of new names excludes every name already present in
+      `indices`, so a dummy is never aliased onto an index in use,
+    - the longest names are substituted first, so `a_1` is not substituted
+      inside `a_10`,
+    - the candidates keep their first-appearance order, so the generated
+      code does not depend on the hash seed.
+    """
     new_names = list(string.ascii_lowercase) + list(string.ascii_uppercase)
 
     used_names = {"a", "b", "r", "s"}
@@ -187,6 +209,12 @@ def _get_einsum_for_Mul(term: Mul, pretty_indices=False) -> str:
 def generate_einsum(expr: Expr, pretty_indices=False) -> str:
     """
     Generates string containing numpy einsum code of given expression.
+
+    The expression has to carry the canonical dummy names (a, b, i, j, p, q
+    with the `_1, _2, ...` suffixes), because the indices are renamed to the
+    psi4numpy convention here. Do NOT rename them beforehand with
+    `substitute_dummies_double_vac(expr, pretty_indices=...)` - see the NOTE
+    in that function.
 
     Args:
         expr (Expr): SymPy expression for code generation

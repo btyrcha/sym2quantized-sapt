@@ -132,8 +132,16 @@ def test_index_name_collision():
     assert reference == tested_str
 
 
-@pytest.mark.xfail()
+@pytest.mark.xfail(
+    strict=True,
+    reason="`pretty_indices` already names the dummies in the psi4numpy "
+    "alphabet, and `generate_einsum` renames them a second time: the "
+    "particle `r` stays `r` while the hole `a` also becomes `r`, so the "
+    "four indices collapse to two and the einsum contracts the wrong pairs",
+)
 def test_psi4_indices_name_collision():
+    # NOTE: pretty_indices in dummies substitution is not compatible with
+    # code generation - see the docstring of `substitute_dummies_double_vac`
     reference = """+np.einsum("rsab,abrs", t_rsab, v_abrs)"""
 
     a = symbols("a", is_molA=True, above_fermi=True, cls=Dummy)

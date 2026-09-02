@@ -65,6 +65,14 @@ Canonical dummy names produced by `substitute_dummies_double_vac`:
 `a`=particle-A, `i`=hole-A, `p`=general-A; `b`=particle-B, `j`=hole-B, `q`=general-B (with
 `_1, _2, …` suffixes). Create indices with e.g. `symbols("a", is_molA=True, above_fermi=True, cls=Dummy)`.
 
+`substitute_dummies_double_vac(expr, pretty_indices={...})` overrides those names. **That option is
+for `latex()` output only — never feed a renamed expression to `generate_einsum`.** Code generation
+applies its own psi4numpy mapping (below) on top, so custom names are mangled (`alpha` → `rlphr`)
+and names already in the psi4numpy alphabet collapse onto each other: renaming particle-A to `r` and
+hole-A to `a` makes both come out as `r`, and the emitted einsum silently contracts the wrong
+indices instead of raising. `tests/test_code_generator.py::test_psi4_indices_name_collision` pins
+this as `xfail`.
+
 ## Typical derivation pipeline
 
 1. Build an operator expression from `DoubleVacuumTensorSymbol` (amplitudes/integrals like
@@ -74,7 +82,8 @@ Canonical dummy names produced by `substitute_dummies_double_vac`:
    evaluate deltas, and canonicalize dummies so equivalent terms collapse.
 3. `spin_integration(expr)` — RHF spin integration (multiplies each term by `2**(#loops)`).
 4. Output: `latex(expr)` / `utils.format_expr` for formulas, or `code_generator.generate_einsum`
-   for runnable `np.einsum` code (uses psi4numpy index naming: a→r, b→s, i→a, j→b).
+   for runnable `np.einsum` code (uses psi4numpy index naming: a→r, b→s, i→a, j→b, applied by
+   `generate_einsum` itself — the expression must still carry the canonical names at this point).
 
 `examples/sapt_pol20.py` is the canonical end-to-end demonstration (E_pol(10), E_ind(20), E_disp(20)).
 
