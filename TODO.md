@@ -56,8 +56,6 @@ Adding spin summation rules for UHF refference.
 `get_R_nm(2, 0, get_a_operator(n=2))` usually returns a 4-term expression but
 intermittently returns **`Zero`**, across fresh processes. The zero rate is
 itself unstable: three separate 25-30 run batches measured 20%, 17% and 7%.
-Fixing `PYTHONHASHSEED` does not stabilize it, so this is not simple hash
-ordering.
 
 Localized by bisection:
 
@@ -71,55 +69,87 @@ Localized by bisection:
 over 25 runs, so this is specific to the `n ≥ 2` path, whose indices carry a
 monomer tag but no Fermi-level assumption.
 
-Prime suspect, stated as a hypothesis rather than a conclusion: the
-substitution-ordering logic at `double_fermi_vac.py:662-682` — the `subslist` /
-`final_subs` split, whose temporary-symbol branch (lines 671-679) is the one
-this report already flags as never executed. If two distinct dummies are aliased
-onto the same symbol by an unlucky substitution order, terms that should survive
-cancel to zero.
+### Root cause
 
-That exact failure mode turned out to be real in `code_generator`, where the
-replacement pool did not exclude names already in use and two distinct dummies
-collapsed onto one index — see `_replace_indices_names` and its regression
-guard `test_index_name_collision`. It is circumstantial, but it is the same
-shape of bug in the same kind of code, which makes the hypothesis worth testing
-rather than merely plausible.
+`_get_ordered_dummies_double_vac` ends with `sorted(term.atoms(Dummy),
+key=_get_key)`. `atoms` returns a **set**, and `_get_key` is not a total order:
+two dummies of the same type sitting in equivalent positions get the same key.
+`sorted` is stable, so ties keep the set's iteration order — which is random
+per process. Two independent randomness sources feed it, which is why pinning
+only one made this look like "not simple hash ordering":
+
+- the ordinary string hash (`PYTHONHASHSEED`),
+- sympy's `Dummy._base_dummy_index`, drawn once per process from
+  `random.Random().randint(10**6, 9*10**6)` and mixed into every dummy's hash.
+
+Pinning both makes the derivation completely deterministic:
+
+| pinned | distinct results / `Zero`, out of 40 runs |
+|---|---|
+| nothing | many / 4 |
+| `PYTHONHASHSEED` only | 11 / 1 |
+| `Dummy._base_dummy_index` only | many / 4 |
+| both | **1 / 0** (and 1 / 0 over 60 further runs) |
+
+When a tie breaks the other way, a term is canonicalized onto the form of a
+sibling term and the two cancel — which is why the failure mode is `Zero`
+rather than a wrong-but-nonzero answer.
+
+The fix is a total ordering key: break ties on something intrinsic and
+process-independent (the dummy's `name`, its position in the term) instead of
+letting the set decide. The same key degeneracy is pinned from another angle by
+the `xfail` `test_dummy_ordering_uses_normal_ordered_operators`, where the
+operators inside a normal ordering bracket contribute nothing to the key at all.
+
+**Ruled out:** the temporary-symbol branch at `double_fermi_vac.py:667-679`,
+the earlier prime suspect. Its guard is `if v in subsdict`, where `v` is a
+replacement dummy created fresh inside the call while the keys are the
+expression's own dummies; `Dummy` equality includes `dummy_index`, so the guard
+is never true and the branch is dead (coverage agrees — `:666` and `:671-679`
+never execute). Substitution cannot alias two dummies either: every dummy in
+`ordered` takes its own `next(...)` from a fresh iterator.
 
 
 ## Tests worth adding
 
-This is the shortlist, taken from the current
-`coverage report --show-missing` and from what the mutation probes could not
-kill. Line numbers are as measured on 2026-09-02; total coverage is 87%
-against `fail_under = 83`.
+Taken from `coverage report --show-missing`, re-measured on 2026-09-02 after
+the round below landed. Total coverage is now 92% against `fail_under = 83`.
 
-### `code_generator.py` — 88%
+`code_generator.py` and `sapt_utils.py` are at 100% and are off the list:
+coefficient formatting (including the `Float == int` tripwire for sympy ≥1.13),
+the `Add` branch, the unsupported-type fallback, both `pretty_indices` paths,
+and `get_a_operator` / `get_b_operator` are all covered.
 
-- coefficient formatting, general (non-±1) case (`:128-136`) — this is where
-      the sympy ≥1.13 fix has to go, and nothing exercises it
-- the `Add` branch (`:239`) — multi-term expressions; the existing tests
-      only ever generate a single term
-- unsupported-type fallback (`:250`) — returns `""`, silently dropping terms
-- `pretty_indices=True` for a bare `TensorSymbol` (`:160`) — only the `Mul`
-      route through `_get_code_str` is covered
-- the `pretty_indices` rejection path (`:61`) — the new `ValueError` for an
-      index outside `PRETTY_INDICES` has no test
+### `double_fermi_vac.py` — 88%
 
-### `double_fermi_vac.py` — 84%
+- `commutator` / `anticommutator` (`:693-696`, `:704-707`) — reached only by
+      `examples/sapt_exch11.py`, which runs under `--slow`, outside the job
+      that measures coverage
+- `NO` branch of `_get_ordered_dummies_double_vac` (`:469-494`) — dead code:
+      `NO.args` holds a single `Mul`, so none of its `isinstance` checks can
+      ever match. Pinned from the outside by the `xfail`
+      `test_dummy_ordering_uses_normal_ordered_operators`; the lines stay
+      uncovered until the branch is repaired or dropped
+- substitution-cycle branch (`:666`, `:671-679`) — unreachable by
+      construction, see the section above. A skipped template with the
+      argument is in `tests/test_double_fermi_vac.py`
 
-- `get_fully_contracted` (`:352-374`) — public, called by nothing
-- substitution-cycle branch (`:671-679`) — never executed, and the prime
-      suspect for the nondeterminism
-- `NO` branch of `_get_ordered_dummies_double_vac` (`:469-494`) — the one
-      mutation still surviving; needs a partially-contracted expression
-      (`keep_only_fully_contracted=False`)
+### `sinfinitizer.py` — 83%, now the least-covered module
 
-### `sapt_utils.py` — 80%, now the least-covered module
+- the un-hit arms of the index-pair dispatch in `_get_tensor_symbol`
+      (`:47-48`, `:71-72`, `:95-96`, `:119-120`, `:127-128`, `:151-152`) and
+      its `NotImplementedError` fallback (`:161-170`) — a table-driven test
+      over the index-type combinations would close all of it at once
 
-- `get_a_operator` / `get_b_operator` (`:39-52`, `:70-83`) — never executed
-      by any test or example
+### `operators.py` — 91%
+
+- the four `__repr__` methods (`:27`, `:49`, `:71`, `:93`) — only cosmetic,
+      but they are four one-line assertions
 
 ### Regression guards
 
-- `get_R_nm(2, 0, ...)` non-determinism
-- the `n >= 2` denominator symmetry set
+Skipped templates are in `tests/test_get_R_nm.py`, both blocked on the
+nondeterminism above:
+
+- `test_R_20_is_deterministic`
+- `test_R_20_denominator_carries_the_full_permutation_symmetry`

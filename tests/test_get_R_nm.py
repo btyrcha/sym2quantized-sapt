@@ -1,7 +1,13 @@
+import pytest
+
 from sympy import Add, Mul, S, latex
 from sympy.physics.secondquant import TensorSymbol
 
-from sym2quantized_sapt.sapt_utils import get_R_nm, get_V_operator
+from sym2quantized_sapt.sapt_utils import (
+    get_R_nm,
+    get_V_operator,
+    get_a_operator,
+)
 
 
 def _tensors_of(term):
@@ -82,3 +88,44 @@ def test_R_01_matches_reference():
     result = get_R_nm(0, 1, get_V_operator())
 
     assert latex(result) == R_V_01_REFERENCE
+
+
+@pytest.mark.skip(
+    reason="TEMPLATE - the derivation itself is not deterministic yet; see "
+    "TODO.md, `substitute_dummies_double_vac` is not deterministic"
+)
+def test_R_20_is_deterministic():
+    """
+    `get_R_nm(2, 0, get_a_operator(n=2))` usually returns a four term
+    expression but intermittently returns Zero. Measured zero rates were
+    20%, 17% and 7% over three batches of 25-30 fresh processes, and
+    fixing PYTHONHASHSEED does not stabilize it.
+
+    A guard has to repeat the derivation, and repeating it in-process is
+    not enough - the reported flakiness is across processes. Follow the
+    `subprocess` pattern of `tests/test_examples.py`, run the derivation
+    some tens of times, and assert every run gives the same four terms.
+    Mark it `slow`; it will not be cheap.
+    """
+    raise NotImplementedError
+
+
+@pytest.mark.skip(
+    reason="TEMPLATE - blocked on test_R_20_is_deterministic; the "
+    "expression under test intermittently comes out as Zero"
+)
+def test_R_20_denominator_carries_the_full_permutation_symmetry():
+    """
+    For n = 2 the denominator e^{i_1 i_2}_{a_1 a_2} may be permuted in the
+    A holes and in the A particles independently, so `get_R_nm` builds its
+    symmetry set as every (upper permutation, lower permutation) pair -
+    four pairs for (n, m) = (2, 0), from the two permutations of two
+    indices.
+
+    Take `get_R_nm(2, 0, get_a_operator(n=2))`, pull the `e` tensor out of
+    the result with `_tensors_of` and assert on `get_symmetries()`: four
+    pairs, each of them a pair of permutations of `(0, 1)`. The `n >= 2`
+    path is the only one where that set is non-trivial, and nothing
+    exercises it today.
+    """
+    raise NotImplementedError
