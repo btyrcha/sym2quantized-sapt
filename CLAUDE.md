@@ -87,6 +87,14 @@ this as `xfail`.
 
 `examples/sapt_pol20.py` is the canonical end-to-end demonstration (E_pol(10), E_ind(20), E_disp(20)).
 
+**Free vs. summed indices.** A `Dummy` index is a summation index; a plain `Symbol` is free. The
+distinction is load-bearing: `get_a_operator`/`get_b_operator` build *free* indices, because the
+exchange operator is contracted with overlap integrals by its caller. Building them as `Dummy` makes
+the operator identically zero for `n >= 2` — an antisymmetric product summed over a symmetric index
+range — and silently collapses everything derived from it; that was a real bug, fixed after 507e35a
+and pinned by `test_generated_indicies_are_free`. `get_Pn_operator` and `get_R_nm` do use `Dummy`,
+correctly: they contract their own indices within the expression they build.
+
 ## Module map (`src/sym2quantized_sapt/`)
 
 - `operators.py` — `AnnihilateFermion_A/B`, `CreateFermion_A/B` subclassing SymPy fermion ops +
@@ -94,8 +102,8 @@ this as `xfail`.
 - `double_fermi_vac.py` — **the core.** `wicks_double_vac` (main entry), `NO_double_vac`
   (normal-ordering split into A/B parts), `contraction_double_vac` (same-monomer contractions only),
   `evaluate_deltas_double_vac` (Einstein-summation delta evaluation respecting monomer tags),
-  `substitute_dummies_double_vac` (term canonicalization — key to collapsing equivalent terms;
-  drops the permutation sign, see above), `get_fully_contracted`, `commutator`, `anticommutator`.
+  `substitute_dummies_double_vac` (term canonicalization — key to collapsing equivalent terms),
+  `get_fully_contracted`, `commutator`, `anticommutator`.
   `_get_ordered_dummies_double_vac` decides the canonical order; it collects dummies in
   `preorder_traversal` order on purpose, because its sort key is not total and a set would hand
   the tie-break to per-process hash randomization. Do not turn it back into `term.atoms(Dummy)`.
@@ -112,9 +120,11 @@ this as `xfail`.
 
 ## Conventions
 
+- `TODO.md` is a human-maintained list of goals only. Investigation notes and post-mortems go in
+  `docs/notes/`, one file per topic, and `TODO.md` links to them — do not grow `TODO.md` with detail.
 - `examples/*.py` are executable derivation scripts; `tests/test_examples.py` runs each (except the
-  `EXAMPLES_BLACKLIST`, currently `coupled_cluster.py`) as a subprocess under the `slow` marker and
-  asserts a zero exit code. Adding an example automatically adds it to that slow test.
+  `EXAMPLES_BLACKLIST`, currently empty) as a subprocess under the `slow` marker and asserts a zero
+  exit code. Adding an example automatically adds it to that slow test.
 - The Polish-flavored spellings in identifiers/docstrings (`DoubleFermiVaccum`, `Prepers`,
   `indicies`, `coresponding`) are established API names — match existing spelling rather than
   "correcting" it, or you will break imports and tests.
