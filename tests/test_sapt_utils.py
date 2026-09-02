@@ -1,4 +1,4 @@
-from sympy import symbols, latex
+from sympy import Dummy, symbols, latex
 
 from sym2quantized_sapt.sapt_utils import get_a_operator, get_b_operator
 
@@ -69,3 +69,13 @@ def test_get_a_operator_ignores_indicies_when_n_is_given():
     without_indicies = latex(get_a_operator(n=1))
 
     assert with_indicies == without_indicies
+
+
+def test_generated_indicies_are_free():
+    """
+    The indicies `n` generates are plain Symbols, not Dummies.
+
+    A `Dummy` index is a summation index, and these are not.
+    """
+    assert not get_a_operator(n=2).atoms(Dummy)
+    assert not get_b_operator(n=2).atoms(Dummy)

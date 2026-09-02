@@ -56,47 +56,45 @@ def test_get_fully_contracted_passes_a_bare_tensor_through():
     assert get_fully_contracted(f) == f
 
 
-@pytest.mark.xfail(
-    reason="`_get_ordered_dummies_double_vac` cannot see inside a normal "
-    "ordering bracket: `NO.args` holds a single Mul, so the isinstance "
-    "checks of its NO branch never match and the operators contribute "
-    "nothing to the ordering key. Two dummies of the same type that only "
-    "differ by their position in the bracket then get equal keys, and "
-    "which one becomes `a` is decided by set iteration order. NOT strict: "
-    "the current behaviour is random, so this passes by accident in about "
-    "one run in ten - see TODO.md",
-)
+# enough repeats to make the assertion below deterministic rather than
+# probabilistic - see the docstring
+_ORDERING_REPEATS = 10
+
+
 def test_dummy_ordering_uses_normal_ordered_operators():
     """
     The same operator written with its two particle indicies swapped has to
-    canonicalize to the same expression.
+    canonicalize to the same expression, every time.
 
-    Measured 3 accidental passes in 30 fresh processes. Both expressions
-    hold the same two `Dummy` objects, so `term.atoms(Dummy)` usually
-    hands `sorted` the same order for each and they canonicalize
-    differently. When the two dummies happen to hash into one set slot,
-    iteration falls back to insertion order, which does differ between the
-    two - and the assertion holds for the wrong reason. A fix makes it
-    pass every run rather than one in ten.
+    This is the only guard on the ordering fix in
+    `_get_ordered_dummies_double_vac`, so it repeats rather than asserting
+    once. A single comparison catches a regression in only about 8 runs out
+    of 10.
     """
-    a_1, a_2 = symbols("a_1 a_2", is_molA=True, above_fermi=True, cls=Dummy)
+    for _ in range(_ORDERING_REPEATS):
+        a_1, a_2 = symbols(
+            "a_1 a_2", is_molA=True, above_fermi=True, cls=Dummy
+        )
 
-    one_way = NO_double_vac(CreateFermion_A(a_1) * AnnihilateFermion_A(a_2))
-    other_way = NO_double_vac(CreateFermion_A(a_2) * AnnihilateFermion_A(a_1))
+        one_way = NO_double_vac(
+            CreateFermion_A(a_1) * AnnihilateFermion_A(a_2)
+        )
+        other_way = NO_double_vac(
+            CreateFermion_A(a_2) * AnnihilateFermion_A(a_1)
+        )
 
-    assert latex(substitute_dummies_double_vac(one_way)) == latex(
-        substitute_dummies_double_vac(other_way)
-    )
+        assert latex(substitute_dummies_double_vac(one_way)) == latex(
+            substitute_dummies_double_vac(other_way)
+        )
 
 
 @pytest.mark.skip(
-    reason="TEMPLATE - no expression is known to reach the branch; see "
-    "TODO.md, `substitute_dummies_double_vac` substitution cycles"
+    reason="TEMPLATE - no expression is known to reach the branch"
 )
 def test_substitution_cycle_needs_a_temporary_symbol():
     """
-    Covers the `(x, y) -> (y, x)` branch of `substitute_dummies_double_vac`
-    (`double_fermi_vac.py:664-679`), which swaps two dummies through a
+    Covers the `(x, y) -> (y, x)` branch of `substitute_dummies_double_vac`,
+    which swaps two dummies through a
     temporary symbol.
 
     The branch is guarded by `if v in subsdict`, that is: a replacement
