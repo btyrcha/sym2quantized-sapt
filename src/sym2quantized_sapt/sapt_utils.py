@@ -40,12 +40,8 @@ def get_a_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
         upper_indicies = []
         lower_indicies = []
         for i in range(n):
-            upper_indicies.append(
-                symbols("p_{0}".format(i), is_molA=True, cls=Dummy)
-            )
-            lower_indicies.append(
-                symbols("q_{0}".format(i), is_molA=True, cls=Dummy)
-            )
+            upper_indicies.append(symbols("p_{0}".format(i), is_molA=True))
+            lower_indicies.append(symbols("q_{0}".format(i), is_molA=True))
 
     creation_part = [Ad(index) for index in upper_indicies]
     annihilation_part = [A(index) for index in reversed(lower_indicies)]
@@ -71,12 +67,8 @@ def get_b_operator(upper_indicies=None, lower_indicies=None, n=1) -> Expr:
         upper_indicies = []
         lower_indicies = []
         for i in range(n):
-            upper_indicies.append(
-                symbols("r_{0}".format(i), is_molB=True, cls=Dummy)
-            )
-            lower_indicies.append(
-                symbols("s_{0}".format(i), is_molB=True, cls=Dummy)
-            )
+            upper_indicies.append(symbols("r_{0}".format(i), is_molB=True))
+            lower_indicies.append(symbols("s_{0}".format(i), is_molB=True))
 
     creation_part = [Bd(index) for index in upper_indicies]
     annihilation_part = [B(index) for index in reversed(lower_indicies)]
