@@ -56,28 +56,10 @@ def test_get_fully_contracted_passes_a_bare_tensor_through():
     assert get_fully_contracted(f) == f
 
 
-@pytest.mark.xfail(
-    reason="`_get_ordered_dummies_double_vac` cannot see inside a normal "
-    "ordering bracket: `NO.args` holds a single Mul, so the isinstance "
-    "checks of its NO branch never match and the operators contribute "
-    "nothing to the ordering key. Two dummies of the same type that only "
-    "differ by their position in the bracket then get equal keys, and "
-    "which one becomes `a` is decided by set iteration order. NOT strict: "
-    "the current behaviour is random, so this passes by accident in about "
-    "one run in ten - see TODO.md",
-)
 def test_dummy_ordering_uses_normal_ordered_operators():
     """
     The same operator written with its two particle indicies swapped has to
     canonicalize to the same expression.
-
-    Measured 3 accidental passes in 30 fresh processes. Both expressions
-    hold the same two `Dummy` objects, so `term.atoms(Dummy)` usually
-    hands `sorted` the same order for each and they canonicalize
-    differently. When the two dummies happen to hash into one set slot,
-    iteration falls back to insertion order, which does differ between the
-    two - and the assertion holds for the wrong reason. A fix makes it
-    pass every run rather than one in ten.
     """
     a_1, a_2 = symbols("a_1 a_2", is_molA=True, above_fermi=True, cls=Dummy)
 
@@ -96,7 +78,7 @@ def test_dummy_ordering_uses_normal_ordered_operators():
 def test_substitution_cycle_needs_a_temporary_symbol():
     """
     Covers the `(x, y) -> (y, x)` branch of `substitute_dummies_double_vac`
-    (`double_fermi_vac.py:664-679`), which swaps two dummies through a
+    (`double_fermi_vac.py:712-724`), which swaps two dummies through a
     temporary symbol.
 
     The branch is guarded by `if v in subsdict`, that is: a replacement

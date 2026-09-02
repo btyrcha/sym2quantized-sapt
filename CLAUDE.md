@@ -94,8 +94,11 @@ this as `xfail`.
 - `double_fermi_vac.py` — **the core.** `wicks_double_vac` (main entry), `NO_double_vac`
   (normal-ordering split into A/B parts), `contraction_double_vac` (same-monomer contractions only),
   `evaluate_deltas_double_vac` (Einstein-summation delta evaluation respecting monomer tags),
-  `substitute_dummies_double_vac` (term canonicalization — key to collapsing equivalent terms),
-  `get_fully_contracted`, `commutator`, `anticommutator`.
+  `substitute_dummies_double_vac` (term canonicalization — key to collapsing equivalent terms;
+  drops the permutation sign, see above), `get_fully_contracted`, `commutator`, `anticommutator`.
+  `_get_ordered_dummies_double_vac` decides the canonical order; it collects dummies in
+  `preorder_traversal` order on purpose, because its sort key is not total and a set would hand
+  the tie-break to per-process hash randomization. Do not turn it back into `term.atoms(Dummy)`.
 - `tensors.py` — `DoubleVacuumTensorSymbol` (symbol + upper/lower index tuples + optional
   permutation symmetries applied at construction).
 - `sapt_utils.py` — operator builders: interaction `V`, exchange operators `get_a/b_operator`,

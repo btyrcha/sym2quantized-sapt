@@ -7,6 +7,7 @@ from sympy.physics.secondquant import (
 
 from sympy import (
     S,
+    Expr,
     Add,
     Mul,
     KroneckerDelta,
@@ -15,6 +16,7 @@ from sympy import (
     latex,
 )
 from sympy import expand as sy_expand
+from sympy.core.traversal import preorder_traversal
 
 from .operators import (
     AnnihilateFermion_A,
@@ -374,7 +376,7 @@ def get_fully_contracted(expr):
         return expr
 
 
-def _get_ordered_dummies_double_vac(term):
+def _get_ordered_dummies_double_vac(term: Expr):
     """
     Returns ordered list of dummy indices from term.
 
@@ -465,33 +467,45 @@ def _get_ordered_dummies_double_vac(term):
 
                 elif isinstance(f, NO):
                     for farg in f.args:
-                        if isinstance(farg, AnnihilateFermion_A):
-                            rep = f"a({_get_idx_type(dummy)})"
-                            representations.append(rep)
+                        if isinstance(farg, Mul):
+                            for fmularg in farg.args:
+                                if isinstance(fmularg, AnnihilateFermion_A):
+                                    rep = f"a({_get_idx_type(dummy)})"
+                                    representations.append(rep)
 
-                            pos = "l0"
-                            dummy_pos.append(pos)
+                                    pos = "l0"
+                                    dummy_pos.append(pos)
 
-                        elif isinstance(farg, AnnihilateFermion_B):
-                            rep = f"b({_get_idx_type(dummy)})"
-                            representations.append(rep)
+                                elif isinstance(fmularg, AnnihilateFermion_B):
+                                    rep = f"b({_get_idx_type(dummy)})"
+                                    representations.append(rep)
 
-                            pos = "l0"
-                            dummy_pos.append(pos)
+                                    pos = "l0"
+                                    dummy_pos.append(pos)
 
-                        elif isinstance(farg, CreateFermion_A):
-                            rep = f"ad({_get_idx_type(dummy)})"
-                            representations.append(rep)
+                                elif isinstance(fmularg, CreateFermion_A):
+                                    rep = f"ad({_get_idx_type(dummy)})"
+                                    representations.append(rep)
 
-                            pos = "u0"
-                            dummy_pos.append(pos)
+                                    pos = "u0"
+                                    dummy_pos.append(pos)
 
-                        elif isinstance(farg, CreateFermion_B):
-                            rep = f"bd({_get_idx_type(dummy)})"
-                            representations.append(rep)
+                                elif isinstance(fmularg, CreateFermion_B):
+                                    rep = f"bd({_get_idx_type(dummy)})"
+                                    representations.append(rep)
 
-                            pos = "u0"
-                            dummy_pos.append(pos)
+                                    pos = "u0"
+                                    dummy_pos.append(pos)
+
+                                else:
+                                    raise TypeError(
+                                        f"Unexpected object of type {type(fmularg)} inside NO(Mul)!"
+                                    )
+
+                        else:
+                            raise TypeError(
+                                f"Unexpected object of type {type(farg)} inside NO! Expected Mul."
+                            )
 
         return tuple(representations), tuple(tensors_pos), tuple(dummy_pos)
 
@@ -501,14 +515,23 @@ def _get_ordered_dummies_double_vac(term):
 
         return (idx_type, *tensors_rep, *tensors_pos, *dummy_pos)
 
-    dummies = term.atoms(Dummy)
+    # NOTE: we do it similarly as in Basic.atoms()
+    # but we keep the order of preorder_traversal()
+    # this order should influence the substitution order
+    nodes = preorder_traversal(term)
+    dummies = dict.fromkeys(node for node in nodes if isinstance(node, Dummy))
+    dummies = list(dummies)
     ordered = sorted(dummies, key=_get_key)
 
-    # # CHECK: all dummies must have a unique non-random key
-    # keys = [_get_key(d) for d in dummies]
-    # if len(dummies) != len(set(keys)):
-    #     for elem in keys:
-    #         print(elem)
+    # CHECK: all dummies must have a unique non-random key
+    # dummy_key_dict = {d: _get_key(d) for d in dummies}
+    # if len(dummies) != len(set(dummy_key_dict.values())):
+    #     print("\n======DEBUG======")
+    #     print(term)
+    #     print(dummies)
+    #     for dummy in dummy_key_dict:
+    #         print(f"{dummy}: {dummy_key_dict[dummy]}")
+    #     print("====END_DEBUG====\n")
 
     return ordered
 
