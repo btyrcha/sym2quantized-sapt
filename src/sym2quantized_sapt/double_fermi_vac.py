@@ -526,6 +526,17 @@ def substitute_dummies_double_vac(expr, pretty_indices=None):
     p, p_1, p_2, ... - general idnicies of molecule A,
     q, q_1, q_2, ... - general idnicies of molecule B.
 
+    NOTE: pretty_indices is NOT compatible with code generation!
+    `code_generator.generate_einsum` renames the canonical names to the
+    psi4numpy convention itself (a -> r, b -> s, i -> a, j -> b), so an
+    expression renamed here is renamed a second time. Custom names get
+    mangled ("alpha" -> "rlphr"), and names taken from the psi4numpy
+    alphabet collapse onto each other: renaming with
+    {"above_molA": "r", "below_molA": "a"} makes both of those indices
+    come out as "r", and the generated einsum silently contracts the
+    wrong indices instead of raising. Use pretty_indices for latex()
+    output only, and hand code generation the default names.
+
     For custom indices names provide 'pretty_indices' dict:
     pretty_indices = {
         "above_molA": "custom_index_name",

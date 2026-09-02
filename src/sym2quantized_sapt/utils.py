@@ -63,3 +63,5 @@ def format_expr(expression: Expr) -> str:
         expression_repr = expression_repr.replace("8.0", "8")
 
         return expression_repr
+
+    return latex(expression)

@@ -15,6 +15,14 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
 
         if symmetries:
             symmetries = Tuple(*symmetries)
+
+            # check if correct format of symmteries was given
+            for symmetry in symmetries:
+                if len(symmetry) != 2:
+                    raise IndexError(
+                        f"Symmetry must be (upper, lower) permutation pair, was {symmetry}!"
+                    )
+
             upper, lower = _use_symmetries(upper, lower, symmetries)
         else:
             symmetries = Tuple()
@@ -66,11 +74,8 @@ def _use_symmetries(upper, lower, symmetries):
 
     if upper != upper_sorted or lower != lower_sorted:
         for sym in symmetries:
-            try:
-                upper_sym = sym[0]
-                lower_sym = sym[1]
-            except ValueError:
-                print("Symmetry must be a tuple of length 2")
+            upper_sym = sym[0]
+            lower_sym = sym[1]
 
             new_upper = Tuple(*(upper[idx] for idx in upper_sym))
             new_lower = Tuple(*(lower[idx] for idx in lower_sym))
