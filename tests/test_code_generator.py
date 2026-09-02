@@ -1,7 +1,7 @@
 import pytest
 import string
 
-from sympy import symbols, Dummy
+from sympy import symbols, Dummy, Rational
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 from sym2quantized_sapt.double_fermi_vac import (
     wicks_double_vac,
@@ -237,3 +237,146 @@ def test_pretty_indices():
     tested_str = generate_einsum(expr, pretty_indices=True)
 
     assert reference == tested_str
+
+
+def _matrix_product(coeff):
+    """`coeff * A^{k}_{l} B^{l}_{m}`, the expression the coefficient
+    formatting tests share"""
+    k, l, m = symbols("k l m")
+
+    A = DoubleVacuumTensorSymbol("A", (l,), (k,))
+    B = DoubleVacuumTensorSymbol("B", (m,), (l,))
+
+    return coeff * A * B
+
+
+def test_integral_float_coefficient():
+    # An integral Float is printed as an int, which relies on
+    # `Float(2.0) == 2`. That holds up to sympy 1.12 and is False from
+    # sympy 1.13 on, where the coefficient comes out as
+    # "2.00000000000000" instead. This assertion is the tripwire for the
+    # `sympy<1.13` cap in setup.py - see the version sensitivity note in
+    # CLAUDE.md.
+    reference = """+2 * np.einsum("kl,lm->km", A_kl, B_lm)"""
+
+    tested_str = generate_einsum(_matrix_product(2.0))
+
+    assert reference == tested_str
+
+
+def test_negative_integral_float_coefficient():
+    # a negative coefficient already carries its sign, no plus is prepended
+    reference = """-2 * np.einsum("kl,lm->km", A_kl, B_lm)"""
+
+    tested_str = generate_einsum(_matrix_product(-2.0))
+
+    assert reference == tested_str
+
+
+def test_non_integral_float_coefficient():
+    reference = """+0.500000000000000 * np.einsum("kl,lm->km", A_kl, B_lm)"""
+
+    tested_str = generate_einsum(_matrix_product(0.5))
+
+    assert reference == tested_str
+
+
+def test_rational_coefficient():
+    reference = """+1/2 * np.einsum("kl,lm->km", A_kl, B_lm)"""
+
+    tested_str = generate_einsum(_matrix_product(Rational(1, 2)))
+
+    assert reference == tested_str
+
+
+def test_sum_of_terms():
+    # every term of an Add gets a line of its own
+    reference = (
+        '+np.einsum("kl,lm->km", A_kl, B_lm)\n' '+np.einsum("km->km", C_km)'
+    )
+
+    k, l, m = symbols("k l m")
+
+    A = DoubleVacuumTensorSymbol("A", (l,), (k,))
+    B = DoubleVacuumTensorSymbol("B", (m,), (l,))
+    C = DoubleVacuumTensorSymbol("C", (m,), (k,))
+
+    tested_str = generate_einsum(A * B + C)
+
+    assert reference == tested_str
+
+
+def test_pretty_indices_for_single_tensor():
+    # the `pretty_indices` route for a bare tensor: `a_1` is renamed to
+    # `r_1` by the psi4numpy mapping and then to `R` by the pretty table.
+    # The variable name drops the subscript, exactly as the `Mul` route
+    # does - see test_tensor_and_mul_routes_agree_on_variable_names.
+    reference = """+np.einsum("Rsab->Rsab", t_rsab)"""
+
+    a_1 = symbols("a_1", is_molA=True, above_fermi=True)
+    i = symbols("i", is_molA=True, below_fermi=True)
+
+    b = symbols("b", is_molB=True, above_fermi=True)
+    j = symbols("j", is_molB=True, below_fermi=True)
+
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a_1, b))
+
+    tested_str = generate_einsum(t, pretty_indices=True)
+
+    assert reference == tested_str
+
+
+def test_pretty_indices_rejects_index_outside_the_table():
+    # `k` and `l` survive the psi4numpy mapping unchanged and are not in
+    # `PRETTY_INDICES`, so the table cannot be applied
+    k, l = symbols("k l")
+
+    A = DoubleVacuumTensorSymbol("A", (l,), (k,))
+    B = DoubleVacuumTensorSymbol("B", (k,), (l,))
+
+    with pytest.raises(ValueError) as exec_info:
+        generate_einsum(A * B, pretty_indices=True)
+
+    assert (
+        exec_info.value.args[0]
+        == "Code generator: `pretty_indices` cannot be applied!"
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="a factor `generate_einsum` cannot translate is dropped "
+    "silently: the fallback returns an empty string, so the term "
+    "disappears from the generated code (leaving a blank line) instead of "
+    "raising. The exception type asserted below is a proposal - whoever "
+    "fixes this picks it",
+)
+def test_unsupported_term_is_not_dropped_silently():
+    # `x` carries no tensor, so `generate_einsum` returns "" for it and the
+    # term vanishes from the sum - the generated code is then quietly wrong
+    k, l, m, x = symbols("k l m x")
+
+    A = DoubleVacuumTensorSymbol("A", (l,), (k,))
+    B = DoubleVacuumTensorSymbol("B", (m,), (l,))
+
+    with pytest.raises((TypeError, ValueError)):
+        generate_einsum(A * B + x)
+
+
+def test_tensor_and_mul_routes_agree_on_variable_names():
+    """A lone tensor and the same tensor inside a product have to name
+    their array identically. The two routes build the name separately, so
+    the subscript stripping has to be kept in step in both of them."""
+    a_1 = symbols("a_1", is_molA=True, above_fermi=True)
+    i_1 = symbols("i_1", is_molA=True, below_fermi=True)
+
+    b = symbols("b", is_molB=True, above_fermi=True)
+    j = symbols("j", is_molB=True, below_fermi=True)
+
+    t = DoubleVacuumTensorSymbol("t", (i_1, j), (a_1, b))
+
+    bare = generate_einsum(t)
+    in_a_product = generate_einsum(2.0 * t)
+
+    assert '+np.einsum("csdb->csdb", t_rsab)' == bare
+    assert '+2 * np.einsum("csdb->csdb", t_rsab)' == in_a_product

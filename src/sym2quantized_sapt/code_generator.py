@@ -138,6 +138,25 @@ def _get_code_str(
     return code_str
 
 
+def _variable_name(tensor: TensorSymbol) -> str:
+    """
+    Name of the numpy array holding `tensor`: the tensor symbol followed by
+    one letter per index, lower indices first.
+
+    Only the leading letter of every index survives, so `t^{i_1 j}_{a_1 b}`
+    and `t^{i j}_{a b}` share the array `t_rsab`. Both code paths
+    (`_get_einsum_for_Tensor` and `_get_einsum_for_Mul`) name their arrays
+    here, so a tensor keeps the same name whether it stands alone or sits
+    in a product.
+    """
+    var_indices = [
+        _psi4numpy_indices(idx.name[0])
+        for idx in (*tensor.lower(), *tensor.upper())
+    ]
+
+    return "_".join((str(tensor.symbol()), "".join(var_indices)))
+
+
 def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
     upper = [_psi4numpy_indices(idx.name) for idx in tensor.upper()]
     lower = [_psi4numpy_indices(idx.name) for idx in tensor.lower()]
@@ -145,7 +164,7 @@ def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
     indices = "".join(lower + upper)
     indices_raw = lower + upper
 
-    variable = "_".join((str(tensor.symbol()), indices))
+    variable = _variable_name(tensor)
 
     # check for uncontracted indicies
     uncont_ind = []
@@ -188,12 +207,7 @@ def _get_einsum_for_Mul(term: Mul, pretty_indices=False) -> str:
             indices.append("".join(arg_indices))
             indices_raw += arg_indices
 
-            var_indices = [
-                _psi4numpy_indices(idx.name[0])
-                for idx in (*arg.lower(), *arg.upper())
-            ]
-            var_indices = "".join(var_indices)
-            variables.append("_".join((str(arg.symbol()), var_indices)))
+            variables.append(_variable_name(arg))
 
     # check for uncontracted indicies
     uncont_ind = []
