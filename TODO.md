@@ -101,6 +101,16 @@ letting the set decide. The same key degeneracy is pinned from another angle by
 the `xfail` `test_dummy_ordering_uses_normal_ordered_operators`, where the
 operators inside a normal ordering bracket contribute nothing to the key at all.
 
+That one `xfail` is deliberately **not** strict, unlike the others in this
+repo. The behaviour it documents is random, so the test passes by accident in
+about one run in ten (measured: 3 in 30 fresh processes) and a strict marker
+turned the suite red at random. The accident is the same set-iteration effect:
+the two expressions hold the same pair of `Dummy` objects and usually get the
+same order out of `atoms()`, but when the two hash into one set slot the
+iteration falls back to insertion order, which does differ between them. Once
+the ordering key is total, the test passes on every run rather than one in ten
+- that consistency, not a single green run, is the signal that this is fixed.
+
 **Ruled out:** the temporary-symbol branch at `double_fermi_vac.py:667-679`,
 the earlier prime suspect. Its guard is `if v in subsdict`, where `v` is a
 replacement dummy created fresh inside the call while the keys are the
@@ -127,9 +137,9 @@ and `get_a_operator` / `get_b_operator` are all covered.
       that measures coverage
 - `NO` branch of `_get_ordered_dummies_double_vac` (`:469-494`) — dead code:
       `NO.args` holds a single `Mul`, so none of its `isinstance` checks can
-      ever match. Pinned from the outside by the `xfail`
-      `test_dummy_ordering_uses_normal_ordered_operators`; the lines stay
-      uncovered until the branch is repaired or dropped
+      ever match. Pinned from the outside by the (non-strict, see above)
+      `xfail` `test_dummy_ordering_uses_normal_ordered_operators`; the
+      lines stay uncovered until the branch is repaired or dropped
 - substitution-cycle branch (`:666`, `:671-679`) — unreachable by
       construction, see the section above. A skipped template with the
       argument is in `tests/test_double_fermi_vac.py`
