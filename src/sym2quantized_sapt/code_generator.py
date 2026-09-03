@@ -138,7 +138,7 @@ def _get_code_str(
     return code_str
 
 
-def _variable_name(tensor: TensorSymbol) -> str:
+def _variable_name(tensor: TensorSymbol, density_fitting: bool = False) -> str:
     """
     Name of the numpy array holding `tensor`: the tensor symbol followed by
     one letter per index, lower indices first.
@@ -154,10 +154,28 @@ def _variable_name(tensor: TensorSymbol) -> str:
         for idx in (*tensor.lower(), *tensor.upper())
     ]
 
+    # v_abrs -> Qar, QBs
+    if density_fitting and str(tensor.symbol()) == "v":
+        if len(var_indices) == 4:
+            return (
+                f"Q{var_indices[0]}{var_indices[2]}, "
+                f"Q{var_indices[1]}{var_indices[3]}"
+            )
+        else:
+            raise IndexError(
+                f"Code generator: density fitting expected 4 indices "
+                f"in tensor {str(tensor)}, got {len(var_indices)}."
+            )
+
     return "_".join((str(tensor.symbol()), "".join(var_indices)))
 
 
-def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
+def _get_einsum_for_Tensor(
+    tensor: TensorSymbol, pretty_indices=True, density_fitting=False
+) -> str:
+    if density_fitting:
+        raise NotImplementedError
+
     upper = [_psi4numpy_indices(idx.name) for idx in tensor.upper()]
     lower = [_psi4numpy_indices(idx.name) for idx in tensor.lower()]
 
@@ -183,7 +201,9 @@ def _get_einsum_for_Tensor(tensor: TensorSymbol, pretty_indices=True) -> str:
     return '+np.einsum("{0}", {1})'.format(indices, variable)
 
 
-def _get_einsum_for_Mul(term: Mul, pretty_indices=False) -> str:
+def _get_einsum_for_Mul(
+    term: Mul, pretty_indices=False, density_fitting=False
+) -> str:
     if isinstance(term.args[0], TensorSymbol):
         coeff = 1
     else:
@@ -200,14 +220,24 @@ def _get_einsum_for_Mul(term: Mul, pretty_indices=False) -> str:
             upper += [_psi4numpy_indices(idx.name) for idx in arg.upper()]
             lower += [_psi4numpy_indices(idx.name) for idx in arg.lower()]
 
+            variable = _variable_name(arg, density_fitting=density_fitting)
             arg_indices = [
                 _psi4numpy_indices(idx.name)
                 for idx in (*arg.lower(), *arg.upper())
             ]
-            indices.append("".join(arg_indices))
-            indices_raw += arg_indices
 
-            variables.append(_variable_name(arg))
+            if density_fitting and len(variable.split(",")) == 2:
+                variables += [v.strip() for v in variable.split(",")]
+                indices += [
+                    f"Q{arg_indices[0]}{arg_indices[2]}",
+                    f"Q{arg_indices[1]}{arg_indices[3]}",
+                ]
+
+            else:
+                indices.append("".join(arg_indices))
+                variables.append(variable)
+
+            indices_raw += arg_indices
 
     # check for uncontracted indicies
     uncont_ind = []
@@ -220,7 +250,9 @@ def _get_einsum_for_Mul(term: Mul, pretty_indices=False) -> str:
     )
 
 
-def generate_einsum(expr: Expr, pretty_indices=False) -> str:
+def generate_einsum(
+    expr: Expr, pretty_indices=False, density_fitting=False
+) -> str:
     """
     Generates string containing numpy einsum code of given expression.
 
@@ -247,18 +279,30 @@ def generate_einsum(expr: Expr, pretty_indices=False) -> str:
     expr = expand(expr)
 
     if isinstance(expr, TensorSymbol):
-        return _get_einsum_for_Tensor(expr, pretty_indices=pretty_indices)
+        return _get_einsum_for_Tensor(
+            expr,
+            pretty_indices=pretty_indices,
+            density_fitting=density_fitting,
+        )
 
     if isinstance(expr, Add):
         return "\n".join(
             [
-                generate_einsum(arg, pretty_indices=pretty_indices)
+                generate_einsum(
+                    arg,
+                    pretty_indices=pretty_indices,
+                    density_fitting=density_fitting,
+                )
                 for arg in expr.args
             ]
         )
 
     if isinstance(expr, Mul):
-        return _get_einsum_for_Mul(expr, pretty_indices=pretty_indices)
+        return _get_einsum_for_Mul(
+            expr,
+            pretty_indices=pretty_indices,
+            density_fitting=density_fitting,
+        )
 
     # expr is neither Mul, Add nor TensorSymbol:
     return ""
