@@ -159,3 +159,26 @@ def test_canonicalization_survives_simultaneous_subs():
 
     assert tuple(renamed.upper) == (b, z)
     assert tuple(renamed.lower) == (c, y)
+
+
+def test_coupled_symmetry_canonicalizes_both_spellings():
+    """A symmetry that couples upper and lower still canonicalizes.
+
+    v^{pq}_{rs} = v^{qp}_{sr} cannot permute one row without the other,
+    so the layout with both rows independently sorted is usually not in
+    the orbit at all. Canonicalization has to pick the smallest layout
+    the group can reach, or the two spellings stay distinct and their
+    terms never collapse.
+    """
+    a = symbols("a", is_molA=True, above_fermi=True, cls=Dummy)
+    a_1 = symbols("a_1", is_molA=True, above_fermi=True, cls=Dummy)
+    a_3 = symbols("a_3", is_molA=True, above_fermi=True)
+    i_3 = symbols("i_3", is_molA=True, below_fermi=True)
+
+    coupled = (((0, 1), (0, 1)), ((1, 0), (1, 0)))
+
+    left = DoubleVacuumTensorSymbol("v", (a_1, i_3), (a_3, a), coupled)
+    right = DoubleVacuumTensorSymbol("v", (i_3, a_1), (a, a_3), coupled)
+
+    assert left == right
+    assert left + right == 2 * left
