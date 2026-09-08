@@ -421,10 +421,10 @@ def _get_ordered_dummies_double_vac(term: Expr):
         for f in factors:
             if dummy in f.atoms(Dummy):
                 if isinstance(f, DoubleVacuumTensorSymbol):
-                    upper = f.upper()
-                    lower = f.lower()
+                    upper = f.upper
+                    lower = f.lower
 
-                    rep = f"{f.symbol()}({list(map(_get_idx_type, upper))},{list(map(_get_idx_type, lower))})"
+                    rep = f"{f.symbol}({list(map(_get_idx_type, upper))},{list(map(_get_idx_type, lower))})"
                     representations.append(rep)
 
                     f_pos = factors.index(f)

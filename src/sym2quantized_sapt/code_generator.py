@@ -190,7 +190,7 @@ def _is_eri(tensor: TensorSymbol) -> bool:
     density-fitting split applies to. The monomer potentials print as `v_A`
     and `v_B` and are left alone, as are `s`, `e` and every amplitude.
     """
-    return str(tensor.symbol()) == "v"
+    return str(tensor.symbol) == "v"
 
 
 def _monomer_of(index) -> str:
@@ -222,7 +222,7 @@ def _check_eri_indices(tensor: TensorSymbol) -> None:
     Indices without a monomer assumption are not second-guessed: a plain
     ERI keeps the positional pairing.
     """
-    upper, lower = tensor.upper(), tensor.lower()
+    upper, lower = tensor.upper, tensor.lower
 
     if len(upper) + len(lower) != 4:
         raise IndexError(
@@ -270,7 +270,7 @@ def _variable_name(tensor: TensorSymbol, density_fitting: bool = False):
 
     var_indices = [
         _psi4numpy_indices(idx.name[0])
-        for idx in (*tensor.lower(), *tensor.upper())
+        for idx in (*tensor.lower, *tensor.upper)
     ]
 
     # v_abrs -> Qar, Qbs
@@ -280,7 +280,7 @@ def _variable_name(tensor: TensorSymbol, density_fitting: bool = False):
             f"Q{var_indices[1]}{var_indices[3]}",
         )
 
-    return ("_".join((str(tensor.symbol()), "".join(var_indices))),)
+    return ("_".join((str(tensor.symbol), "".join(var_indices))),)
 
 
 def _expand_tensor(
@@ -301,8 +301,7 @@ def _expand_tensor(
     identically whether it stands alone or sits in a product.
     """
     arg_indices = [
-        _psi4numpy_indices(idx.name)
-        for idx in (*tensor.lower(), *tensor.upper())
+        _psi4numpy_indices(idx.name) for idx in (*tensor.lower, *tensor.upper)
     ]
 
     variables = _variable_name(tensor, density_fitting=density_fitting)
@@ -328,8 +327,8 @@ def _next_aux_sentinel(sentinels) -> str:
 def _get_einsum_for_Tensor(
     tensor: TensorSymbol, pretty_indices=True, density_fitting=False
 ) -> str:
-    upper = [_psi4numpy_indices(idx.name) for idx in tensor.upper()]
-    lower = [_psi4numpy_indices(idx.name) for idx in tensor.lower()]
+    upper = [_psi4numpy_indices(idx.name) for idx in tensor.upper]
+    lower = [_psi4numpy_indices(idx.name) for idx in tensor.lower]
 
     indices, variables, indices_raw = _expand_tensor(
         tensor,
@@ -365,8 +364,8 @@ def _get_einsum_for_Mul(
 
     for arg in term.args:
         if isinstance(arg, TensorSymbol):
-            upper += [_psi4numpy_indices(idx.name) for idx in arg.upper()]
-            lower += [_psi4numpy_indices(idx.name) for idx in arg.lower()]
+            upper += [_psi4numpy_indices(idx.name) for idx in arg.upper]
+            lower += [_psi4numpy_indices(idx.name) for idx in arg.lower]
 
             # every ERI gets an auxiliary index of its own
             if density_fitting and _is_eri(arg):

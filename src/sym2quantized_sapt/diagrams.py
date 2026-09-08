@@ -19,8 +19,8 @@ def _make_simplified_graph(expr):
     edges = []
     for elem in expr.args:
         if isinstance(elem, TensorSymbol):
-            upper = [index for index in elem.upper()]
-            lower = [index for index in elem.lower()]
+            upper = [index for index in elem.upper]
+            lower = [index for index in elem.lower]
             edges.append(upper + lower)
 
     n = len(edges)

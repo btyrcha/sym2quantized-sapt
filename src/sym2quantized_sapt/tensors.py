@@ -29,42 +29,46 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
 
         return TensorSymbol.__new__(cls, symbol, upper, lower, symmetries)
 
+    @property
     def symbol(self):
         return self.args[0]
 
+    @property
     def upper(self):
         return self.args[1]
 
+    @property
     def lower(self):
         return self.args[2]
 
-    def get_symmetries(self):
+    @property
+    def symmetries(self):
         return self.args[3]
 
     def _dagger_(self):
         return DoubleVacuumTensorSymbol(
-            self.args[0],
-            self.args[2],
-            self.args[1],
-            self.args[3],
+            self.symbol,
+            self.lower,
+            self.upper,
+            self.symmetries,
         )
 
     def _latex(self, printer):
-        latex_str = "%s" % (self.args[0])
+        latex_str = "%s" % (self.symbol)
 
-        if len(self.args[1]):
-            latex_str += "^{%s}" % "".join([i.name for i in self.args[1]])
+        if len(self.upper):
+            latex_str += "^{%s}" % "".join([i.name for i in self.upper])
 
-        if len(self.args[2]):
-            latex_str += "_{%s}" % "".join([i.name for i in self.args[2]])
+        if len(self.lower):
+            latex_str += "_{%s}" % "".join([i.name for i in self.lower])
 
         return latex_str
 
     def __str__(self):
-        return f"{self.args[0]}({self.args[1]},{self.args[2]})"
+        return f"{self.symbol}({self.upper},{self.lower})"
 
     def _hashable_content(self):
-        return (self.args[0], self.args[1], self.args[2])
+        return (self.symbol, self.upper, self.lower)
 
 
 def _use_symmetries(upper, lower, symmetries):

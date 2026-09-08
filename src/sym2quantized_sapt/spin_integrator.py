@@ -50,16 +50,16 @@ def spin_integration(expr: Expr) -> Expr:
         lower = []
         for elem in expr.args:
             if isinstance(elem, TensorSymbol):
-                upper += [index for index in elem.upper()]
-                lower += [index for index in elem.lower()]
+                upper += [index for index in elem.upper]
+                lower += [index for index in elem.lower]
 
         l = _count_loops(upper, lower)
 
         return Mul(2 ** (l), expr)
 
     elif isinstance(expr, TensorSymbol):
-        upper = expr.upper()
-        lower = expr.lower()
+        upper = expr.upper
+        lower = expr.lower
 
         l = _count_loops(upper, lower)
 

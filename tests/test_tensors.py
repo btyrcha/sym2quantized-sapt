@@ -34,8 +34,8 @@ def test_symmetries_canonicalize_permuted_indices():
         "t", (i_2, i_1), (a_2, a_1), FULL_SYMMETRIES
     )
 
-    assert tuple(swapped.upper()) == tuple(plain.upper())
-    assert tuple(swapped.lower()) == tuple(plain.lower())
+    assert tuple(swapped.upper) == tuple(plain.upper)
+    assert tuple(swapped.lower) == tuple(plain.lower)
     assert swapped == plain
 
 
@@ -45,8 +45,8 @@ def test_no_symmetries_leaves_indices_untouched():
 
     tensor = DoubleVacuumTensorSymbol("t", (i_2, i_1), (a_2, a_1))
 
-    assert tuple(tensor.upper()) == (i_2, i_1)
-    assert tuple(tensor.lower()) == (a_2, a_1)
+    assert tuple(tensor.upper) == (i_2, i_1)
+    assert tuple(tensor.lower) == (a_2, a_1)
 
 
 def test_non_matching_symmetry_leaves_indices_untouched():
@@ -58,19 +58,19 @@ def test_non_matching_symmetry_leaves_indices_untouched():
         "t", (i_2, i_1), (a_2, a_1), identity_only
     )
 
-    assert tuple(tensor.upper()) == (i_2, i_1)
-    assert tuple(tensor.lower()) == (a_2, a_1)
+    assert tuple(tensor.upper) == (i_2, i_1)
+    assert tuple(tensor.lower) == (a_2, a_1)
 
 
-def test_get_symmetries_roundtrip():
-    """get_symmetries() returns what construction was given."""
+def test_symmetries_roundtrip():
+    """.symmetries returns what construction was given."""
     a_1, a_2, i_1, i_2 = _pair_indices()
 
     tensor = DoubleVacuumTensorSymbol(
         "t", (i_2, i_1), (a_2, a_1), FULL_SYMMETRIES
     )
 
-    assert len(tensor.get_symmetries()) == len(FULL_SYMMETRIES)
+    assert len(tensor.symmetries) == len(FULL_SYMMETRIES)
 
 
 def test_no_symmetries_gives_empty_symmetry_tuple():
@@ -79,7 +79,7 @@ def test_no_symmetries_gives_empty_symmetry_tuple():
 
     tensor = DoubleVacuumTensorSymbol("t", (i_1,), (a_1,))
 
-    assert len(tensor.get_symmetries()) == 0
+    assert len(tensor.symmetries) == 0
 
 
 def test_dagger_swaps_indices_and_keeps_symmetries():
@@ -91,9 +91,9 @@ def test_dagger_swaps_indices_and_keeps_symmetries():
 
     daggered = Dagger(tensor)
 
-    assert tuple(daggered.upper()) == tuple(tensor.lower())
-    assert tuple(daggered.lower()) == tuple(tensor.upper())
-    assert len(daggered.get_symmetries()) == len(FULL_SYMMETRIES)
+    assert tuple(daggered.upper) == tuple(tensor.lower)
+    assert tuple(daggered.lower) == tuple(tensor.upper)
+    assert len(daggered.symmetries) == len(FULL_SYMMETRIES)
 
 
 def test_malformed_symmetry_entry():
