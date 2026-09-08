@@ -11,7 +11,8 @@ from sym2quantized_sapt.double_fermi_vac import (
     AnnihilateFermion_A,
     AnnihilateFermion_B,
 )
-from sym2quantized_sapt.sapt_utils import get_V_operator
+from sym2quantized_sapt.sapt_utils import get_V_operator, get_R_nm
+from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.code_generator import generate_einsum
 
 
@@ -380,3 +381,322 @@ def test_tensor_and_mul_routes_agree_on_variable_names():
 
     assert '+np.einsum("csdb->csdb", t_rsab)' == bare
     assert '+2 * np.einsum("csdb->csdb", t_rsab)' == in_a_product
+
+
+# --------------------------------------------------------------------------
+# density fitting
+#
+# `generate_einsum(..., density_fitting=True)` replaces every intermolecular
+# two-electron integral `v^{p r}_{q s} = (p q | r s)` with its factorization
+# `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the three-index arrays `Qqp` and
+# `Qsr` in place of `v_qspr`. See `docs/notes/density-fitting.md`.
+# --------------------------------------------------------------------------
+
+
+def _sapt_indices():
+    """the four canonical dummies of a doubly excited SAPT term"""
+    a = symbols("a", is_molA=True, above_fermi=True)
+    i = symbols("i", is_molA=True, below_fermi=True)
+
+    b = symbols("b", is_molB=True, above_fermi=True)
+    j = symbols("j", is_molB=True, below_fermi=True)
+
+    return a, i, b, j
+
+
+def test_density_fitting_splits_an_eri_into_two_three_index_arrays():
+    # the A indices land in one array and the B indices in the other, with
+    # the psi4numpy letters: A occupied `a` / virtual `r`, B occupied `b` /
+    # virtual `s`
+    reference = """+np.einsum("rsab,Qar,Qbs", t_rsab, Qar, Qbs)"""
+
+    a, i, b, j = _sapt_indices()
+
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+    v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
+    tested_str = generate_einsum(t * v, density_fitting=True)
+
+    assert reference == tested_str
+
+
+def test_density_fitting_gives_each_eri_its_own_auxiliary_index():
+    # Two ERIs in one term are two independent auxiliary sums,
+    # `(sum_Q B B)(sum_P B B)`. Sharing one label would contract all four
+    # three-index arrays against the same auxiliary index - a different, and
+    # wrong, quantity. The array names keep the `Q` prefix either way: it
+    # spells out `B^{Q}`, it is not the subscript.
+    reference = (
+        """+4 * np.einsum("rsab,Qar,Qbs,Pra,Psb", """
+        """e_rsab, Qar, Qbs, Qra, Qsb)"""
+    )
+
+    a, i, b, j = _sapt_indices()
+
+    e = DoubleVacuumTensorSymbol("e", (i, j), (a, b))
+    v_abij = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+    v_ijab = DoubleVacuumTensorSymbol("v", (i, j), (a, b))
+
+    tested_str = generate_einsum(
+        4.0 * e * v_abij * v_ijab, density_fitting=True
+    )
+
+    assert reference == tested_str
+
+
+def test_density_fitting_on_derived_e_disp_20():
+    # the same term as above, this time derived rather than hand-built: the
+    # end-to-end check that the pipeline hands `generate_einsum` an
+    # expression it factorizes correctly
+    reference = (
+        """+4 * np.einsum("rsab,Qar,Qbs,Pra,Psb", """
+        """e_rsab, Qar, Qbs, Qra, Qsb)"""
+    )
+
+    E_disp_20 = wicks_double_vac(
+        get_V_operator() * get_R_nm(1, 1, get_V_operator()),
+        keep_only_fully_contracted=True,
+    )
+    E_disp_20 = spin_integration(E_disp_20)
+
+    assert (
+        '+4 * np.einsum("rsab,abrs,rsab", e_rsab, v_abrs, v_rsab)'
+        == generate_einsum(E_disp_20)
+    )
+    assert reference == generate_einsum(E_disp_20, density_fitting=True)
+
+
+def test_density_fitting_leaves_non_eri_tensors_alone():
+    # only `v` is factorized; the overlap `s`, the monomer potential
+    # `(v_A)` and the amplitudes come out exactly as they do without the
+    # option
+    a, i, b, j = _sapt_indices()
+
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+    s = DoubleVacuumTensorSymbol("s", (b,), (i,))
+    vA = DoubleVacuumTensorSymbol("(v_A)", (a,), (j,))
+
+    expr = t * s * vA
+
+    assert generate_einsum(expr) == generate_einsum(expr, density_fitting=True)
+
+
+def test_density_fitting_auxiliary_index_is_summed_not_returned():
+    # the auxiliary index is contracted away inside the ERI, so it must not
+    # reach the einsum output - otherwise the term gains a free index over
+    # the auxiliary basis
+    reference = """+np.einsum("as,Qar,Qbs->asabrs", s_as, Qar, Qbs)"""
+
+    a, i, b, j = _sapt_indices()
+
+    v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+    s = DoubleVacuumTensorSymbol("s", (b,), (i,))
+
+    tested_str = generate_einsum(v * s, density_fitting=True)
+
+    assert reference == tested_str
+
+    subscript = tested_str.split('"')[1]
+    assert "Q" not in subscript.split("->")[1]
+
+
+def test_density_fitting_for_a_bare_tensor():
+    # a lone tensor takes the `_get_einsum_for_Tensor` route; density
+    # fitting has to work there too. A tensor that is not an ERI is
+    # untouched by the option.
+    a, i, b, j = _sapt_indices()
+
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+    v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
+    assert generate_einsum(t) == generate_einsum(t, density_fitting=True)
+    assert '+np.einsum("Qar,Qbs->abrs", Qar, Qbs)' == generate_einsum(
+        v, density_fitting=True
+    )
+
+
+def test_density_fitting_in_a_sum():
+    # an `Add` mixing a product with a bare tensor has to generate both
+    # lines - the bare-tensor route must not take the whole expression down
+    reference = (
+        '+np.einsum("rsab,Qar,Qbs", t_rsab, Qar, Qbs)\n'
+        '+np.einsum("Qar,Qbs->abrs", Qar, Qbs)'
+    )
+
+    a, i, b, j = _sapt_indices()
+
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+    v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
+    tested_str = generate_einsum(t * v + v, density_fitting=True)
+
+    assert reference == tested_str
+
+
+def test_density_fitting_rejects_an_eri_without_four_indices():
+    # the factorization needs a `(p q | r s)`; anything else is not an ERI
+    # this code knows how to split
+    a, i, b, j = _sapt_indices()
+
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+    v = DoubleVacuumTensorSymbol("v", (a,), (i,))
+
+    with pytest.raises(IndexError) as exec_info:
+        generate_einsum(t * v, density_fitting=True)
+
+    assert exec_info.value.args[0] == (
+        "Code generator: density fitting expected 4 indices "
+        "in tensor v((a,),(i,)), got 2."
+    )
+
+    # and from the bare-tensor route as well
+    with pytest.raises(IndexError):
+        generate_einsum(v, density_fitting=True)
+
+
+def test_density_fitting_rejects_an_eri_that_is_not_two_by_two():
+    # four indices are not enough on their own: the split takes one upper
+    # and one lower index per monomer, so they have to be spread 2 and 2
+    a, i, b, j = _sapt_indices()
+
+    v = DoubleVacuumTensorSymbol("v", (a, b, i), (j,))
+
+    with pytest.raises(IndexError) as exec_info:
+        generate_einsum(v, density_fitting=True)
+
+    assert exec_info.value.args[0] == (
+        "Code generator: density fitting expected 2 upper and 2 lower "
+        "indices in tensor v((a, b, i),(j,)), got 3 and 1."
+    )
+
+
+def test_density_fitting_rejects_an_eri_that_is_not_monomer_ordered():
+    # the split pairs index slots positionally, so it is only the right
+    # factorization when each (lower, upper) slot pair sits on one monomer.
+    # `v^{a b}_{j i}` would silently give `Qbr`, `Qas` - three-index arrays
+    # straddling both monomers.
+    a, i, b, j = _sapt_indices()
+
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+    v = DoubleVacuumTensorSymbol("v", (a, b), (j, i))
+
+    with pytest.raises(IndexError) as exec_info:
+        generate_einsum(t * v, density_fitting=True)
+
+    assert exec_info.value.args[0] == (
+        "Code generator: density fitting expected each pair of indices "
+        "of tensor v((a, b),(j, i)) on one monomer, got BA and AB."
+    )
+
+
+def test_density_fitting_keeps_positional_pairing_without_monomer_tags():
+    # a plain ERI carrying no monomer assumption is not second-guessed
+    k, l, m, n = symbols("k l m n")
+
+    v = DoubleVacuumTensorSymbol("v", (k, m), (l, n))
+
+    assert '+np.einsum("Qlk,Qnm->lnkm", Qlk, Qnm)' == generate_einsum(
+        v, density_fitting=True
+    )
+
+
+def test_density_fitting_with_pretty_indices():
+    # `pretty_indices` renames `p_1` to `P` and `q_1` to `Q`, both of which
+    # the auxiliary index would otherwise want. It is named last, out of the
+    # letters the subscript has not already spent, so it steps aside to `R`.
+    reference = """+np.einsum("pQPq,RPp,RqQ", t_pqpq, Qpp, Qqq)"""
+
+    p, p_1 = symbols("p p_1", is_molA=True)
+    q, q_1 = symbols("q q_1", is_molB=True)
+
+    t = DoubleVacuumTensorSymbol("t", (p_1, q), (p, q_1))
+    v = DoubleVacuumTensorSymbol("v", (p, q_1), (p_1, q))
+
+    tested_str = generate_einsum(
+        t * v, pretty_indices=True, density_fitting=True
+    )
+
+    assert reference == tested_str
+
+
+def test_density_fitting_routes_agree_on_variable_names():
+    """The bare-tensor and the product route name the density-fitted arrays
+    separately; a `v` has to give the same pair of arrays either way."""
+    a, i, b, j = _sapt_indices()
+
+    v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
+    bare = generate_einsum(v, density_fitting=True)
+    in_a_product = generate_einsum(2.0 * v, density_fitting=True)
+
+    assert '+np.einsum("Qar,Qbs->abrs", Qar, Qbs)' == bare
+    assert '+2 * np.einsum("Qar,Qbs->abrs", Qar, Qbs)' == in_a_product
+
+
+def _many_eris(count, padding=0):
+    """A product of `count` ERIs and `padding` amplitudes, none of them
+    sharing an index. Every index is subscripted, so each amplitude costs
+    the renamer four more letters."""
+    expr = 1.0
+    for n in range(count):
+        a = symbols(f"a_{n}", is_molA=True, above_fermi=True)
+        i = symbols(f"i_{n}", is_molA=True, below_fermi=True)
+        b = symbols(f"b_{n}", is_molB=True, above_fermi=True)
+        j = symbols(f"j_{n}", is_molB=True, below_fermi=True)
+        expr *= DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
+    for n in range(count, count + padding):
+        a = symbols(f"a_{n}", is_molA=True, above_fermi=True)
+        i = symbols(f"i_{n}", is_molA=True, below_fermi=True)
+        b = symbols(f"b_{n}", is_molB=True, above_fermi=True)
+        j = symbols(f"j_{n}", is_molB=True, below_fermi=True)
+        expr *= DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+
+    return expr
+
+
+def test_density_fitting_runs_out_of_auxiliary_indices():
+    # one auxiliary index per ERI, so a term eventually exhausts the pool.
+    # It has to say so rather than reuse a label and fuse two ERIs into one
+    # auxiliary sum.
+    assert generate_einsum(_many_eris(8), density_fitting=True)
+
+    with pytest.raises(IndexError) as exec_info:
+        generate_einsum(_many_eris(9), density_fitting=True)
+
+    assert exec_info.value.args[0] == (
+        "Too many ERIs!!! Not enough auxiliary indices for them."
+    )
+
+
+def test_density_fitting_auxiliary_indices_can_be_starved_by_ordinary_ones():
+    # the auxiliary indices are named last, out of the letters the ordinary
+    # indices have not taken, so a term can run out of them without holding
+    # more ERIs than there are sentinels. It has to say so rather than reuse
+    # a label.
+    assert generate_einsum(_many_eris(8, padding=2), density_fitting=True)
+
+    with pytest.raises(IndexError) as exec_info:
+        generate_einsum(_many_eris(8, padding=3), density_fitting=True)
+
+    assert exec_info.value.args[0] == (
+        "Too many ERIs!!! Not enough auxiliary indices for them."
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="a squared ERI is a `Pow`, not a `Mul` of two `TensorSymbol`s, "
+    "so no argument of the term is recognised and the factor is dropped: "
+    'the line comes out as `+2 * np.einsum("", )`. Same silent-drop '
+    "defect as test_unsupported_term_is_not_dropped_silently, and not "
+    "specific to density fitting - the non-fitted route drops it too",
+)
+def test_density_fitting_does_not_drop_a_squared_eri():
+    a, i, b, j = _sapt_indices()
+
+    v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
+    assert '+2 * np.einsum("", )' != generate_einsum(
+        2.0 * v * v, density_fitting=True
+    )

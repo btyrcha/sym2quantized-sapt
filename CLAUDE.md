@@ -87,6 +87,26 @@ this as `xfail`.
 
 `examples/sapt_pol20.py` is the canonical end-to-end demonstration (E_pol(10), E_ind(20), E_disp(20)).
 
+**One operator object per factor.** The builders in `sapt_utils` mint fresh `Dummy` indices on
+every call, and two factors of a product that hold the *same* `Dummy` are summed over one index
+instead of two. So an operator appearing twice in a product has to be built twice:
+
+```python
+V = get_V_operator()
+expr = V * get_R_nm(1, 1, V)                            # WRONG - one V, shared p, q, r, s
+expr = get_V_operator() * get_R_nm(1, 1, get_V_operator())   # right
+```
+
+Reusing one object turns the product into a product of traces — `V * V` loses
+`v^{ab}_{ij} v^{ij}_{ab}` entirely and keeps only `(v^{ij}_{ij})^2`. Nothing raises. Pinned by
+`test_reusing_one_operator_object_in_a_product_collapses_it`. Reusing an operator across
+*separate* expressions is fine (`examples/sapt_pol20.py` does it), as is adding terms that share
+dummies — the hazard is a single product.
+
+The one deliberate exception is inside `get_R_nm`, which uses its `a_part`/`b_part` twice on
+purpose: the resolvent is `sum |ai,bj><ai,bj| / e`, so both sides must carry the same excitation
+indices.
+
 **Free vs. summed indices.** A `Dummy` index is a summation index; a plain `Symbol` is free. The
 distinction is load-bearing: `get_a_operator`/`get_b_operator` build *free* indices, because the
 exchange operator is contracted with overlap integrals by its caller. Building them as `Dummy` makes
@@ -116,6 +136,9 @@ correctly: they contract their own indices within the expression they build.
   all ways and assigning signs from loop/hole-line parity.
 - `diagrams.py` — `get_only_linked`: keeps only connected (linked) terms via graph traversal.
 - `code_generator.py` — `generate_einsum`: SymPy expression → `np.einsum` source string.
+  `density_fitting=True` factorizes the intermolecular ERI `v` into two three-index
+  arrays (`v_abrs` → `Qar, Qbs`), one auxiliary index per ERI; no other tensor is touched.
+  → `docs/notes/density-fitting.md`
 - `utils.py` — `format_expr` (LaTeX align formatting), `timeit` decorator.
 
 ## Conventions
