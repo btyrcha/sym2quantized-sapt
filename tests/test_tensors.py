@@ -109,3 +109,53 @@ def test_malformed_symmetry_entry():
         exec_info.value.args[0]
         == f"Symmetry must be (upper, lower) permutation pair, was {malformed[0]}!"
     )
+
+
+def test_canonical_order_ignores_free_vs_summed_indices():
+    """A free index must not move the canonical order.
+
+    Basic.compare orders by class before content, so every free Symbol
+    sorts ahead of every Dummy. Sorting on that would move the target
+    order for a tensor mixing the two, no permutation in the symmetry
+    group would match it, and the tensor would silently stay
+    uncanonicalized - leaving `term + term` where `2*term` belongs.
+    """
+    a_1, a_2, i_1, _ = _pair_indices()
+    i_2_free = symbols("i_2", is_molA=True, below_fermi=True)
+
+    # a resolvent-like group: holes only permute with their particles
+    paired = (((0, 1), (0, 1)), ((1, 0), (1, 0)))
+
+    swapped = DoubleVacuumTensorSymbol(
+        "e", (i_2_free, i_1), (a_2, a_1), paired
+    )
+    plain = DoubleVacuumTensorSymbol("e", (i_1, i_2_free), (a_1, a_2), paired)
+
+    assert tuple(swapped.upper) == (i_1, i_2_free)
+    assert tuple(swapped.lower) == (a_1, a_2)
+    assert swapped == plain
+    assert swapped + plain == 2 * plain
+
+
+def test_canonicalization_survives_simultaneous_subs():
+    """An index slot is not always a Symbol.
+
+    subs(simultaneous=True) routes a Mul sentinel through the index
+    slots while it resolves a swap, so the sort key must not assume
+    every index has a .name.
+    """
+    a_1, a_2, i_1, i_2 = _pair_indices()
+    paired = (((0, 1), (0, 1)), ((1, 0), (1, 0)))
+
+    tensor = DoubleVacuumTensorSymbol("e", (i_1, i_2), (a_1, a_2), paired)
+
+    # rename so the new names invert the order - the swap has to fire
+    z = symbols("z", is_molA=True, below_fermi=True, cls=Dummy)
+    b = symbols("b", is_molA=True, below_fermi=True, cls=Dummy)
+    y = symbols("y", is_molA=True, above_fermi=True, cls=Dummy)
+    c = symbols("c", is_molA=True, above_fermi=True, cls=Dummy)
+
+    renamed = tensor.subs({i_1: z, i_2: b, a_1: y, a_2: c}, simultaneous=True)
+
+    assert tuple(renamed.upper) == (b, z)
+    assert tuple(renamed.lower) == (c, y)

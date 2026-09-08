@@ -97,7 +97,7 @@ class CreateFermion_B(CreateFermion, DoubleFermiVaccum):
 
 
 # importable operators classes
-a = AnnihilateFermion_A
-ad = CreateFermion_A  # a_dagger
-b = AnnihilateFermion_B
-bd = CreateFermion_B  # b_dagger
+A = AnnihilateFermion_A
+Ad = CreateFermion_A  # a_dagger
+B = AnnihilateFermion_B
+Bd = CreateFermion_B  # b_dagger

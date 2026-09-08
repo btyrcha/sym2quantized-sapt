@@ -6,7 +6,7 @@ from sym2quantized_sapt.double_fermi_vac import (
     evaluate_deltas_double_vac,
 )
 
-from sym2quantized_sapt.operators import a, ad, b, bd
+from sym2quantized_sapt.operators import A, Ad, B, Bd
 
 
 def test_can_evaluate_simple_delta():
@@ -19,7 +19,7 @@ def test_can_evaluate_simple_delta():
     p, q = symbols("p q", is_molA=True, cls=Dummy)
 
     # build the expression using abstact operators
-    expr = ad(p) * a(q) * KroneckerDelta(p, q)
+    expr = Ad(p) * A(q) * KroneckerDelta(p, q)
 
     # evaluate the expression using our tested function
     expr = evaluate_deltas_double_vac(expr)
@@ -41,7 +41,7 @@ def test_can_evaluate_cross_monomer_delta():
     b1 = symbols("b1", is_molB=True, above_fermi=True, cls=Dummy)
 
     # building expression
-    expr = ad(a1) * a(a1) * bd(b1) * b(b1) * KroneckerDelta(a1, b1)
+    expr = Ad(a1) * A(a1) * Bd(b1) * B(b1) * KroneckerDelta(a1, b1)
 
     # evaluation using tested function
     expr = evaluate_deltas_double_vac(expr)
@@ -63,11 +63,11 @@ def test_can_evaluate_two_deltas():
     b1 = symbols("b1", is_molB=True, above_fermi=True, cls=Dummy)
 
     expr = (
-        ad(a1)
-        * a(p)
+        Ad(a1)
+        * A(p)
         * KroneckerDelta(a1, p)
-        * bd(b1)
-        * b(q)
+        * Bd(b1)
+        * B(q)
         * KroneckerDelta(b1, q)
     )
 
@@ -87,7 +87,7 @@ def test_can_evaluate_hole_particle_delta():
     a1 = symbols("a1", is_molA=True, above_fermi=True, cls=Dummy)
     i1 = symbols("i1", is_molA=True, below_fermi=True, cls=Dummy)
 
-    expr = ad(a1) * a(i1) * KroneckerDelta(a1, i1)
+    expr = Ad(a1) * A(i1) * KroneckerDelta(a1, i1)
 
     expr = evaluate_deltas_double_vac(expr)
 
@@ -105,7 +105,7 @@ def test_can_evaluate_no_changes():
     p = symbols("p", is_molA=True, cls=Dummy)
     a1 = symbols("a1", is_molA=True, above_fermi=True, cls=Dummy)
 
-    expr = ad(a1) * KroneckerDelta(a1, p)
+    expr = Ad(a1) * KroneckerDelta(a1, p)
 
     expr = evaluate_deltas_double_vac(expr)
 

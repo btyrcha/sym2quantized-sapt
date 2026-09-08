@@ -6,7 +6,7 @@ from sym2quantized_sapt.double_fermi_vac import (
     contraction_double_vac,
 )
 
-from sym2quantized_sapt.operators import a, ad, b, bd
+from sym2quantized_sapt.operators import A, Ad, B, Bd
 
 
 def test_can_evaluate_hole_contraction():
@@ -14,7 +14,7 @@ def test_can_evaluate_hole_contraction():
 
     i1, i2 = symbols("i1 i2", is_molA=True, below_fermi=True, cls=Dummy)
     # ad(i1) a(i2)
-    expr = contraction_double_vac(ad(i1), a(i2))
+    expr = contraction_double_vac(Ad(i1), A(i2))
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
@@ -25,7 +25,7 @@ def test_can_evaluate_particle_contraction():
 
     b1, b2 = symbols("b1 b2", is_molB=True, above_fermi=True, cls=Dummy)
     # b(b1) bd(b2)
-    expr = contraction_double_vac(b(b1), bd(b2))
+    expr = contraction_double_vac(B(b1), Bd(b2))
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
@@ -36,7 +36,7 @@ def test_can_evaluate_zero_contraction_1():
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     # ad(p) ad(q)
-    expr = contraction_double_vac(ad(p), ad(q))
+    expr = contraction_double_vac(Ad(p), Ad(q))
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
@@ -47,7 +47,7 @@ def test_can_evaluate_zero_contraction_2():
 
     r, s = symbols("r s", is_molB=True, cls=Dummy)
     # b(r) b(s)
-    expr = contraction_double_vac(b(r), b(s))
+    expr = contraction_double_vac(B(r), B(s))
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
@@ -59,7 +59,7 @@ def test_can_evaluate_cross_monomer_contraction():
     p = symbols("p", is_molA=True, cls=Dummy)
     r = symbols("r", is_molB=True, cls=Dummy)
     # a(p) b(r)
-    expr = contraction_double_vac(a(p), b(r))
+    expr = contraction_double_vac(A(p), B(r))
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
@@ -70,7 +70,7 @@ def test_can_evaluate_general_indicies_contraction_1():
 
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     # ad(p) a(q)
-    expr = contraction_double_vac(ad(p), a(q))
+    expr = contraction_double_vac(Ad(p), A(q))
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
@@ -81,7 +81,7 @@ def test_can_evaluate_general_indicies_contraction_2():
 
     r, s = symbols("r s", is_molB=True, cls=Dummy)
     # b(r) bd(s)
-    expr = contraction_double_vac(b(r), bd(s))
+    expr = contraction_double_vac(B(r), Bd(s))
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
