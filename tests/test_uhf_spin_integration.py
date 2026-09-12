@@ -3,11 +3,13 @@ from sympy import Add, Mul, symbols
 
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
 from sym2quantized_sapt.sapt_utils import get_R_nm, get_V_operator
+from sym2quantized_sapt.open_shell import (
+    rhf_collapse,
+    spin_integration_uhf,
+)
 from sym2quantized_sapt.spin_integrator import (
     _loop_partition,
-    rhf_collapse,
     spin_integration,
-    spin_integration_uhf,
 )
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 

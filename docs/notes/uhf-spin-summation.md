@@ -1,5 +1,8 @@
 # UHF spin summation
 
+(Implemented in `sym2quantized_sapt/open_shell.py`; the RHF path in
+`spin_integrator.py` is untouched.)
+
 `spin_integration_uhf` extends the package to an unrestricted
 reference.  Design and the reasoning behind it; the RHF path is
 untouched.

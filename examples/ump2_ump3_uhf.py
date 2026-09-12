@@ -33,7 +33,7 @@ from sym2quantized_sapt.double_fermi_vac import (
 )
 from sym2quantized_sapt.operators import a, ad
 from sym2quantized_sapt.sapt_utils import get_R_nm
-from sym2quantized_sapt.spin_integrator import spin_integration_uhf
+from sym2quantized_sapt.open_shell import spin_integration_uhf
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol as DVT
 
 SPIN = {"a": {"is_alpha": True}, "b": {"is_beta": True}}

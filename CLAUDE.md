@@ -111,7 +111,13 @@ correctly: they contract their own indices within the expression they build.
   permutation symmetries applied at construction).
 - `sapt_utils.py` — operator builders: interaction `V`, exchange operators `get_a/b_operator`,
   permutation operators `get_P2/P4/Pn_operator`, resolvent superoperator `get_R_nm`.
-- `spin_integrator.py` — `spin_integration` + `_count_loops` (Goldstone-diagram loop counting).
+- `spin_integrator.py` — `spin_integration` (RHF) + `_loop_partition` / `_count_loops`
+  (Goldstone-diagram loops; the partition is what spin bookkeeping keys off).
+- `open_shell.py` — **unrestricted references.** Spin tags (`opposite_spins`,
+  `shared_spin_tag`), which `double_fermi_vac` consults so contractions vanish
+  across opposite spins, and the per-loop route (`spin_integration_uhf`,
+  `rhf_collapse`). The two mechanisms are alternatives; the module docstring
+  says when the cheap one is invalid.
 - `sinfinitizer.py` — `sinfinitizer`: expands overlap integrals (S^∞), wiring tensors together in
   all ways and assigning signs from loop/hole-line parity.
 - `diagrams.py` — `get_only_linked`: keeps only connected (linked) terms via graph traversal.

@@ -270,7 +270,7 @@ def array_table(expr: Expr) -> dict:
     The generated code references arrays by name only; this returns
     what each name *is*, axis by axis, so numeric code can build them
     -- the missing half of code generation for spin-blocked
-    (:func:`spin_integrator.spin_integration_uhf`) expressions, where
+    (:func:`open_shell.spin_integration_uhf`) expressions, where
     the alpha and beta ranges of an axis are different sizes and the
     block label decides which.
 
@@ -287,7 +287,10 @@ def array_table(expr: Expr) -> dict:
     definitions (it cannot happen for expressions produced by this
     package's pipeline; a hand-built collision should fail loudly).
     """
-    from sym2quantized_sapt.spin_integrator import (
+    # imported here rather than at module scope: double_fermi_vac
+    # imports open_shell, and open_shell must stay free to import this
+    # module's helpers without a cycle
+    from sym2quantized_sapt.open_shell import (
         BLOCK_SEPARATOR,
         SPIN_LABELS,
     )

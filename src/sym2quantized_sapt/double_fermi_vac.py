@@ -18,6 +18,11 @@ from sympy import (
 from sympy import expand as sy_expand
 from sympy.core.traversal import preorder_traversal
 
+from sym2quantized_sapt.open_shell import (
+    opposite_spins,
+    shared_spin_tag,
+)
+
 from .operators import (
     AnnihilateFermion_A,
     AnnihilateFermion_B,
@@ -76,35 +81,6 @@ class NO_double_vac:
             return arg
 
 
-def _shared_spin_tag(x, y) -> dict:
-    """The spin assumptions a fallback summation dummy must inherit.
-
-    When two general (Fermi-level-free) indices contract, the fresh
-    dummy projecting them onto the particle or hole space ranges over
-    *their* spin: dropping the tag would silently sum both spins where
-    the unrestricted blocks differ.  Untagged operands yield an empty
-    dict, keeping the closed-shell behaviour."""
-    for assumptions in (x.assumptions0, y.assumptions0):
-        if assumptions.get("is_alpha"):
-            return {"is_alpha": True}
-        if assumptions.get("is_beta"):
-            return {"is_beta": True}
-    return {}
-
-
-def _opposite_spins(x, y) -> bool:
-    """Both indices carry an explicit spin tag (``is_alpha`` /
-    ``is_beta``) and the tags differ.  Spin tags are the open-shell
-    analogue of the monomer tags: a contraction across them vanishes,
-    which lets Wick's theorem do the UHF spin bookkeeping exactly
-    instead of relying on the closed-shell ``2**loops`` rule."""
-    ax, ay = x.assumptions0, y.assumptions0
-    return bool(
-        (ax.get("is_alpha") and ay.get("is_beta"))
-        or (ax.get("is_beta") and ay.get("is_alpha"))
-    )
-
-
 def contraction_double_vac(X, Y):
     """
     Calculates contraction for operators corresponding
@@ -116,7 +92,7 @@ def contraction_double_vac(X, Y):
     """
 
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
-        if _opposite_spins(X.state, Y.state):
+        if opposite_spins(X.state, Y.state):
             return S.Zero
         if isinstance(X, AnnihilateFermion_A) and isinstance(
             Y, CreateFermion_A
@@ -133,7 +109,7 @@ def contraction_double_vac(X, Y):
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
                 Dummy("a", is_molA=True, above_fermi=True,
-                      **_shared_spin_tag(X.state, Y.state)),
+                      **shared_spin_tag(X.state, Y.state)),
             )
 
         if isinstance(X, CreateFermion_A) and isinstance(
@@ -151,7 +127,7 @@ def contraction_double_vac(X, Y):
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
                 Dummy("i", is_molA=True, below_fermi=True,
-                      **_shared_spin_tag(X.state, Y.state)),
+                      **shared_spin_tag(X.state, Y.state)),
             )
 
         if isinstance(X, AnnihilateFermion_B) and isinstance(
@@ -169,7 +145,7 @@ def contraction_double_vac(X, Y):
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
                 Dummy("b", is_molB=True, above_fermi=True,
-                      **_shared_spin_tag(X.state, Y.state)),
+                      **shared_spin_tag(X.state, Y.state)),
             )
 
         if isinstance(X, CreateFermion_B) and isinstance(
@@ -187,7 +163,7 @@ def contraction_double_vac(X, Y):
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
                 Dummy("j", is_molB=True, below_fermi=True,
-                      **_shared_spin_tag(X.state, Y.state)),
+                      **shared_spin_tag(X.state, Y.state)),
             )
 
         else:
