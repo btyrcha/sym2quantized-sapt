@@ -180,6 +180,26 @@ def spin_integration_uhf(expr: Expr, labels=SPIN_LABELS) -> Expr:
     Setting all blocks of every tensor equal must reproduce
     :func:`spin_integration` term by term -- the RHF collapse; see
     :func:`rhf_collapse` for the symbolic form of that gate.
+
+    .. warning::
+
+       The per-loop route is only as correct as the spatial expression
+       it is applied to, and the spatial-Wick + ``2**loops`` pipeline
+       is **not** valid for expressions containing a resolvent (or any
+       projector) with two or more index pairs in one space: part of
+       the projector's permutation multiplicity flows through
+       exchange-wired contractions, which spatial terms can only carry
+       with same-spin labels.  Concretely, ``<W R_(2,0) W>`` treated
+       this way halves the opposite-spin MP2 energy (its closed-shell
+       limit is ``1.5A - B`` instead of ``2A - B``) -- caught by the
+       psi4 benchmark, see ``docs/notes/uhf-spin-summation.md``.  For
+       MP-n and any multi-pair projector, tag the indices with
+       ``is_alpha`` / ``is_beta`` instead and let Wick's theorem do
+       the spin bookkeeping (the contraction rule vanishes across
+       spin tags), with per-sector resolvent normalisation --
+       ``1/(n!)**2`` per same-spin pair group, distinguishable pairs
+       unpermuted.  Single-pair-per-space projections (``R_(1,1)``
+       dispersion, the eq 46 dressings) are unaffected.
     """
     if isinstance(expr, Add):
         return Add(*[spin_integration_uhf(arg, labels) for arg in expr.args])

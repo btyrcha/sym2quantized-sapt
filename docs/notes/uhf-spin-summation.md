@@ -43,12 +43,36 @@ copies merge and
 
     rhf_collapse(spin_integration_uhf(e)) == spin_integration(e)
 
-holds **exactly**, term by term.  Every UHF derivation should pass
-this gate before its blocks are trusted; the tests and the
-`ump2_ump3_uhf.py` example enforce it for E_disp(20), UMP2
-(16 spatial → 40 blocked terms; the opposite-spin block provably
-exchange-free) and UMP3 (336 → 1136; the RSPT
-`<WRWRW> − E1<WRRW>` form).
+holds **exactly**, term by term.  It is a *consistency* gate, not a
+correctness one — the benchmark below caught a formula that passes it
+and is still wrong.
+
+## The limitation the psi4 benchmark caught
+
+The per-loop route is only as correct as the spatial expression under
+it, and spatial Wick + `2**loops` is **invalid for a resolvent (or
+projector) carrying two or more index pairs in one space**: part of
+its permutation multiplicity flows through exchange-wired
+contractions, which spatial terms can only carry with same-spin
+labels.  `<W R_(2,0) W>` treated this way halves the opposite-spin
+MP2 energy — closed-shell limit `1.5A − B` instead of `2A − B` —
+while the same-spin channel and the RHF collapse gate are perfectly
+consistent.  Numerics against psi4 (UHF/cc-pVDZ, OH radical) exposed
+it.
+
+The correct open-shell route for MP-n is **spin tags**: indices carry
+`is_alpha` / `is_beta`, the contraction rule vanishes across them
+(the same mechanism as the monomer tags), the fluctuation operator
+enters as its four spin sectors, and each resolvent sector gets its
+own normalisation — `1/(2!)^2` for two indistinguishable same-spin
+pairs, `1` for the distinguishable mixed pair.  With that, UMP2
+agrees with psi4's conventional UHF-MP2 to ~1e-16 per spin channel
+(derivation and numeric check live in the downstream application:
+`derive_ump2_uhf.py` / `run_ump2_uhf_check.py`).  Per-loop labels
+remain valid — and cheap — for single-pair-per-space projections:
+`R_(1,1)` dispersion and the eq 46 dressings.  UMP3 via spin tags is
+the natural follow-up; the `ump2_ump3_uhf.py` example pins the
+per-loop halving so the limitation cannot be forgotten silently.
 
 ## Open lines, and what is deliberately out of scope
 

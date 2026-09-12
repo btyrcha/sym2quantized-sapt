@@ -111,3 +111,31 @@ def test_unbalanced_tensor_is_rejected():
 
 def test_numbers_pass_through():
     assert spin_integration_uhf(symbols("V_0")) == symbols("V_0")
+
+
+def test_array_table_defines_blocked_arrays():
+    from sym2quantized_sapt.code_generator import array_table
+
+    t, v = _t_and_v()
+    table = array_table(spin_integration_uhf(t * v))
+
+    # four blocks of each tensor, all defined
+    assert len(table) == 8
+    entry = table["t_ab_rsab"]
+    assert entry["base"] == "t" and entry["spin_block"] == "ab"
+    # storage order: lower (a, b) then upper (i, j)
+    assert [axis["space"] for axis in entry["axes"]] == ["v", "v", "o", "o"]
+    assert [axis["role"] for axis in entry["axes"]] == ["l", "l", "u", "u"]
+    # spin follows the slot pair: lower_k and upper_k share pair k
+    assert [axis["spin"] for axis in entry["axes"]] == ["a", "b", "a", "b"]
+    assert [axis["monomer"] for axis in entry["axes"]] == ["A", "B", "A", "B"]
+
+
+def test_array_table_leaves_unblocked_tensors_unlabelled():
+    from sym2quantized_sapt.code_generator import array_table
+
+    t, v = _t_and_v()
+    table = array_table(t * v)
+
+    assert table["t_rsab"]["spin_block"] == ""
+    assert all(axis["spin"] == "" for axis in table["t_rsab"]["axes"])

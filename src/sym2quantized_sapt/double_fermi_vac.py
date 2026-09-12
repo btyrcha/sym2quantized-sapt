@@ -76,13 +76,32 @@ class NO_double_vac:
             return arg
 
 
+def _opposite_spins(x, y) -> bool:
+    """Both indices carry an explicit spin tag (``is_alpha`` /
+    ``is_beta``) and the tags differ.  Spin tags are the open-shell
+    analogue of the monomer tags: a contraction across them vanishes,
+    which lets Wick's theorem do the UHF spin bookkeeping exactly
+    instead of relying on the closed-shell ``2**loops`` rule."""
+    ax, ay = x.assumptions0, y.assumptions0
+    return bool(
+        (ax.get("is_alpha") and ay.get("is_beta"))
+        or (ax.get("is_beta") and ay.get("is_alpha"))
+    )
+
+
 def contraction_double_vac(X, Y):
     """
     Calculates contraction for operators corresponding
     to either molecule A or molecule B.
+
+    Indices tagged with opposite spins (``is_alpha`` / ``is_beta``)
+    never contract; untagged indices contract with anything, as
+    before.
     """
 
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
+        if _opposite_spins(X.state, Y.state):
+            return S.Zero
         if isinstance(X, AnnihilateFermion_A) and isinstance(
             Y, CreateFermion_A
         ):

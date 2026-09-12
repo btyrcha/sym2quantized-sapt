@@ -262,3 +262,115 @@ def generate_einsum(expr: Expr, pretty_indices=False) -> str:
 
     # expr is neither Mul, Add nor TensorSymbol:
     return ""
+
+
+def array_table(expr: Expr) -> dict:
+    """Define every array :func:`generate_einsum` emits for ``expr``.
+
+    The generated code references arrays by name only; this returns
+    what each name *is*, axis by axis, so numeric code can build them
+    -- the missing half of code generation for spin-blocked
+    (:func:`spin_integrator.spin_integration_uhf`) expressions, where
+    the alpha and beta ranges of an axis are different sizes and the
+    block label decides which.
+
+    Returns ``{array_name: {"base": tensor symbol without the block
+    label, "spin_block": label or "", "axes": [...]}}`` with one axes
+    entry per array dimension, in the array's storage order (lower
+    indices first, then upper, matching :func:`generate_einsum`):
+    ``{"role": "l"/"u", "space": "o"/"v"/"g", "monomer": "A"/"B"/"",
+    "spin": one label character or ""}``.  The spin of an axis is the
+    block label of its slot pair -- pair ``k`` couples lower axis ``k``
+    with upper axis ``k``, one particle/hole line through the tensor.
+
+    Raises ``ValueError`` if one name would need two different
+    definitions (it cannot happen for expressions produced by this
+    package's pipeline; a hand-built collision should fail loudly).
+    """
+    from sym2quantized_sapt.spin_integrator import (
+        BLOCK_SEPARATOR,
+        SPIN_LABELS,
+    )
+
+    def _axis_facts(index):
+        assumptions = index.assumptions0
+        if assumptions.get("below_fermi"):
+            space = "o"
+        elif assumptions.get("above_fermi"):
+            space = "v"
+        else:
+            space = "g"
+        if assumptions.get("is_molA"):
+            monomer = "A"
+        elif assumptions.get("is_molB"):
+            monomer = "B"
+        else:
+            monomer = ""
+        if assumptions.get("is_alpha"):
+            tag = SPIN_LABELS[0]
+        elif assumptions.get("is_beta"):
+            tag = SPIN_LABELS[1]
+        else:
+            tag = ""
+        return space, monomer, tag
+
+    table = {}
+    terms = expr.args if isinstance(expr, Add) else [expr]
+    for term in terms:
+        factors = term.args if isinstance(term, Mul) else [term]
+        for tensor in factors:
+            if not isinstance(tensor, TensorSymbol):
+                continue
+            name = _variable_name(tensor)
+            symbol = str(tensor.symbol())
+            lower, upper = list(tensor.lower()), list(tensor.upper())
+            n_pairs = min(len(lower), len(upper))
+
+            base, separator, suffix = symbol.rpartition(BLOCK_SEPARATOR)
+            blocked = (
+                bool(separator)
+                and len(suffix) == n_pairs
+                and set(suffix) <= set("".join(SPIN_LABELS))
+            )
+            if not blocked:
+                base, suffix = symbol, ""
+
+            axes = []
+            for position, index in enumerate(lower + upper):
+                role = "l" if position < len(lower) else "u"
+                pair = (
+                    position
+                    if position < len(lower)
+                    else position - len(lower)
+                )
+                space, monomer, tag = _axis_facts(index)
+                block = (
+                    suffix[pair] if blocked and pair < len(suffix) else ""
+                )
+                if tag and block and tag != block:
+                    raise ValueError(
+                        f"tensor {symbol}: axis {position} is tagged "
+                        f"spin {tag!r} but the block label says {block!r}."
+                    )
+                spin = tag or block
+                axes.append(
+                    {
+                        "role": role,
+                        "space": space,
+                        "monomer": monomer,
+                        "spin": spin,
+                    }
+                )
+
+            definition = {
+                "base": base,
+                "spin_block": suffix,
+                "axes": axes,
+            }
+            if name in table and table[name] != definition:
+                raise ValueError(
+                    f"array {name} would need two definitions:\n"
+                    f"  {table[name]}\n  {definition}"
+                )
+            table[name] = definition
+    return table
