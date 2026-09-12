@@ -139,3 +139,26 @@ def test_array_table_leaves_unblocked_tensors_unlabelled():
 
     assert table["t_rsab"]["spin_block"] == ""
     assert all(axis["spin"] == "" for axis in table["t_rsab"]["axes"])
+
+
+def test_fallback_summation_dummy_inherits_the_spin_tag():
+    # a bubble: two general same-spin indices contract, and the fresh
+    # particle/hole summation dummy must range over THAT spin only
+    from sympy import Dummy, symbols as sy
+    from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
+    from sym2quantized_sapt.operators import a, ad
+
+    p = sy("p", is_molA=True, is_alpha=True, cls=Dummy)
+    q = sy("q", is_molA=True, is_alpha=True, cls=Dummy)
+    u = DoubleVacuumTensorSymbol("u_a", (p,), (q,))
+
+    result = wicks_double_vac(
+        u * ad(q) * a(p), keep_only_fully_contracted=True,
+        substitute_dummies=False,
+    )
+
+    tags = [
+        index.assumptions0.get("is_alpha")
+        for index in result.atoms(Dummy)
+    ]
+    assert tags and all(tags)

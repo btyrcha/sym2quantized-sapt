@@ -76,6 +76,22 @@ class NO_double_vac:
             return arg
 
 
+def _shared_spin_tag(x, y) -> dict:
+    """The spin assumptions a fallback summation dummy must inherit.
+
+    When two general (Fermi-level-free) indices contract, the fresh
+    dummy projecting them onto the particle or hole space ranges over
+    *their* spin: dropping the tag would silently sum both spins where
+    the unrestricted blocks differ.  Untagged operands yield an empty
+    dict, keeping the closed-shell behaviour."""
+    for assumptions in (x.assumptions0, y.assumptions0):
+        if assumptions.get("is_alpha"):
+            return {"is_alpha": True}
+        if assumptions.get("is_beta"):
+            return {"is_beta": True}
+    return {}
+
+
 def _opposite_spins(x, y) -> bool:
     """Both indices carry an explicit spin tag (``is_alpha`` /
     ``is_beta``) and the tags differ.  Spin tags are the open-shell
@@ -115,7 +131,9 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("a", is_molA=True, above_fermi=True)
+                Y.state,
+                Dummy("a", is_molA=True, above_fermi=True,
+                      **_shared_spin_tag(X.state, Y.state)),
             )
 
         if isinstance(X, CreateFermion_A) and isinstance(
@@ -131,7 +149,9 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("i", is_molA=True, below_fermi=True)
+                Y.state,
+                Dummy("i", is_molA=True, below_fermi=True,
+                      **_shared_spin_tag(X.state, Y.state)),
             )
 
         if isinstance(X, AnnihilateFermion_B) and isinstance(
@@ -147,7 +167,9 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("b", is_molB=True, above_fermi=True)
+                Y.state,
+                Dummy("b", is_molB=True, above_fermi=True,
+                      **_shared_spin_tag(X.state, Y.state)),
             )
 
         if isinstance(X, CreateFermion_B) and isinstance(
@@ -163,7 +185,9 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("j", is_molB=True, below_fermi=True)
+                Y.state,
+                Dummy("j", is_molB=True, below_fermi=True,
+                      **_shared_spin_tag(X.state, Y.state)),
             )
 
         else:
