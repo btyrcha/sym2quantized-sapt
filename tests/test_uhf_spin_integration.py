@@ -21,6 +21,7 @@ def _disp20_indices():
     i = symbols("i", is_molA=True, below_fermi=True)
     b = symbols("b", is_molB=True, above_fermi=True)
     j = symbols("j", is_molB=True, below_fermi=True)
+
     return a, i, b, j
 
 
@@ -28,6 +29,7 @@ def _t_and_v():
     a, i, b, j = _disp20_indices()
     t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
     v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
     return t, v
 
 
@@ -38,6 +40,7 @@ def test_loop_partition_of_a_two_loop_term():
     for tensor in (t, v):
         upper += list(tensor.upper)
         lower += list(tensor.lower)
+
     loops = _loop_partition(upper, lower)
 
     # two loops, each threading one slot pair of t and one of v
@@ -54,6 +57,7 @@ def test_uhf_blocks_a_two_loop_term_four_ways():
     def pair(label):
         t_block = DoubleVacuumTensorSymbol("t_" + label, (i, j), (a, b))
         v_block = DoubleVacuumTensorSymbol("v_" + label, (a, b), (i, j))
+
         return t_block * v_block
 
     assert blocked == Add(*[pair(l) for l in ("aa", "ab", "ba", "bb")])
@@ -76,6 +80,7 @@ def test_uhf_on_derived_e_disp20():
     # one spatial term, two loops: exactly the four spin cases, with
     # consistent labels on the denominator and both integrals
     assert len(blocked.args) == 4
+
     names = sorted(
         str(factor.symbol)
         for term in blocked.args
@@ -83,6 +88,7 @@ def test_uhf_on_derived_e_disp20():
         if isinstance(factor, DoubleVacuumTensorSymbol)
         and str(factor.symbol).startswith("e_")
     )
+
     assert names == ["e_aa", "e_ab", "e_ba", "e_bb"]
     assert rhf_collapse(blocked) == spin_integration(E)
 
@@ -121,11 +127,14 @@ def test_array_table_defines_blocked_arrays():
 
     # four blocks of each tensor, all defined
     assert len(table) == 8
+
     entry = table["t_ab_rsab"]
     assert entry["base"] == "t" and entry["spin_block"] == "ab"
+
     # storage order: lower (a, b) then upper (i, j)
     assert [axis["space"] for axis in entry["axes"]] == ["v", "v", "o", "o"]
     assert [axis["role"] for axis in entry["axes"]] == ["l", "l", "u", "u"]
+
     # spin follows the slot pair: lower_k and upper_k share pair k
     assert [axis["spin"] for axis in entry["axes"]] == ["a", "b", "a", "b"]
     assert [axis["monomer"] for axis in entry["axes"]] == ["A", "B", "A", "B"]
@@ -156,4 +165,5 @@ def test_fallback_summation_dummy_inherits_the_spin_tag():
     tags = [
         index.assumptions0.get("is_alpha") for index in result.atoms(Dummy)
     ]
+
     assert tags and all(tags)

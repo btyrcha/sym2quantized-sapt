@@ -3,6 +3,11 @@ import re
 from sympy import Add, Mul, Expr, expand
 from sympy.physics.secondquant import TensorSymbol
 
+from sym2quantized_sapt.open_shell import (
+    BLOCK_SEPARATOR,
+    SPIN_LABELS,
+)
+
 
 def _psi4numpy_indices(index: str) -> str:
     """
@@ -484,40 +489,38 @@ def array_table(expr: Expr) -> dict:
     definitions (it cannot happen for expressions produced by this
     package's pipeline; a hand-built collision should fail loudly).
     """
-    # imported here rather than at module scope: double_fermi_vac
-    # imports open_shell, and open_shell must stay free to import this
-    # module's helpers without a cycle
-    from sym2quantized_sapt.open_shell import (
-        BLOCK_SEPARATOR,
-        SPIN_LABELS,
-    )
 
     def _axis_facts(index):
         assumptions = index.assumptions0
+
         if assumptions.get("below_fermi"):
             space = "o"
         elif assumptions.get("above_fermi"):
             space = "v"
         else:
             space = "g"
+
         if assumptions.get("is_molA"):
             monomer = "A"
         elif assumptions.get("is_molB"):
             monomer = "B"
         else:
             monomer = ""
+
         if assumptions.get("is_alpha"):
             tag = SPIN_LABELS[0]
         elif assumptions.get("is_beta"):
             tag = SPIN_LABELS[1]
         else:
             tag = ""
+
         return space, monomer, tag
 
     table = {}
     terms = expr.args if isinstance(expr, Add) else [expr]
     for term in terms:
         factors = term.args if isinstance(term, Mul) else [term]
+
         for tensor in factors:
             if not isinstance(tensor, TensorSymbol):
                 continue
@@ -533,6 +536,7 @@ def array_table(expr: Expr) -> dict:
                 and len(suffix) == n_pairs
                 and set(suffix) <= set("".join(SPIN_LABELS))
             )
+
             if not blocked:
                 base, suffix = symbol, ""
 
@@ -546,11 +550,13 @@ def array_table(expr: Expr) -> dict:
                 )
                 space, monomer, tag = _axis_facts(index)
                 block = suffix[pair] if blocked and pair < len(suffix) else ""
+
                 if tag and block and tag != block:
                     raise ValueError(
                         f"tensor {symbol}: axis {position} is tagged "
                         f"spin {tag!r} but the block label says {block!r}."
                     )
+
                 spin = tag or block
                 axes.append(
                     {
@@ -566,10 +572,13 @@ def array_table(expr: Expr) -> dict:
                 "spin_block": suffix,
                 "axes": axes,
             }
+
             if name in table and table[name] != definition:
                 raise ValueError(
                     f"array {name} would need two definitions:\n"
                     f"  {table[name]}\n  {definition}"
                 )
+
             table[name] = definition
+
     return table

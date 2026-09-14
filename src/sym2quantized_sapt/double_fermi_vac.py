@@ -94,6 +94,7 @@ def contraction_double_vac(X, Y):
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
         if opposite_spins(X.state, Y.state):
             return S.Zero
+
         if isinstance(X, AnnihilateFermion_A) and isinstance(
             Y, CreateFermion_A
         ):

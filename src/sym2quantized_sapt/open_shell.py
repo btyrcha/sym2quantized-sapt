@@ -55,8 +55,10 @@ def shared_spin_tag(x, y) -> dict:
     for assumptions in (x.assumptions0, y.assumptions0):
         if assumptions.get("is_alpha"):
             return {"is_alpha": True}
+
         if assumptions.get("is_beta"):
             return {"is_beta": True}
+
     return {}
 
 
@@ -67,6 +69,7 @@ def opposite_spins(x, y) -> bool:
     which lets Wick's theorem do the UHF spin bookkeeping exactly
     instead of relying on the closed-shell ``2**loops`` rule."""
     ax, ay = x.assumptions0, y.assumptions0
+
     return bool(
         (ax.get("is_alpha") and ay.get("is_beta"))
         or (ax.get("is_beta") and ay.get("is_alpha"))
@@ -101,6 +104,7 @@ def _blocked(tensor, pair_labels):
     silently wrong for the mixed-spin amplitudes.
     """
     name = str(tensor.symbol) + BLOCK_SEPARATOR + "".join(pair_labels)
+
     return DoubleVacuumTensorSymbol(
         name, tuple(tensor.upper), tuple(tensor.lower)
     )
@@ -108,14 +112,17 @@ def _blocked(tensor, pair_labels):
 
 def _spin_blocked_term(coefficients, tensors, labels):
     upper, lower, pair_owner = [], [], []
+
     for tensor_index, tensor in enumerate(tensors):
         ups, lows = list(tensor.upper), list(tensor.lower)
+
         if len(ups) != len(lows):
             raise ValueError(
                 f"spin blocking needs particle-conserving tensors; "
                 f"{tensor} has {len(ups)} upper and {len(lows)} lower "
                 f"indices."
             )
+
         upper += ups
         lower += lows
         pair_owner += [tensor_index] * len(ups)
@@ -125,9 +132,11 @@ def _spin_blocked_term(coefficients, tensors, labels):
     blocked_terms = []
     for assignment in product(labels, repeat=len(loops)):
         spin_of_position = {}
+
         for loop, label in zip(loops, assignment):
             for position in loop:
                 spin_of_position[position] = label
+
         factors = list(coefficients)
         offset = 0
         for tensor in tensors:
@@ -137,7 +146,9 @@ def _spin_blocked_term(coefficients, tensors, labels):
             ]
             factors.append(_blocked(tensor, pair_labels))
             offset += n_pairs
+
         blocked_terms.append(Mul(*factors))
+
     return Add(*blocked_terms)
 
 
@@ -187,11 +198,13 @@ def spin_integration_uhf(expr: Expr, labels=SPIN_LABELS) -> Expr:
 
     if isinstance(expr, Mul):
         coefficients, tensors = [], []
+
         for elem in expr.args:
             if isinstance(elem, TensorSymbol):
                 tensors.append(elem)
             else:
                 coefficients.append(elem)
+
         return _spin_blocked_term(coefficients, tensors, labels)
 
     if isinstance(expr, TensorSymbol):
@@ -217,14 +230,17 @@ def rhf_collapse(expr: Expr, labels=SPIN_LABELS) -> Expr:
         name = str(tensor.symbol)
         base, separator, suffix = name.rpartition(BLOCK_SEPARATOR)
         n_pairs = len(tensor.upper)
+
         if separator and len(suffix) == n_pairs and set(suffix) <= alphabet:
             return DoubleVacuumTensorSymbol(
                 base, tuple(tensor.upper), tuple(tensor.lower)
             )
+
         return tensor
 
     if isinstance(expr, Add):
         return Add(*[rhf_collapse(arg, labels) for arg in expr.args])
+
     if isinstance(expr, Mul):
         return Mul(
             *[
@@ -232,6 +248,8 @@ def rhf_collapse(expr: Expr, labels=SPIN_LABELS) -> Expr:
                 for elem in expr.args
             ]
         )
+
     if isinstance(expr, TensorSymbol):
         return strip(expr)
+
     return expr
