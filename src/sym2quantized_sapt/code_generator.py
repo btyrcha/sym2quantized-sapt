@@ -522,8 +522,8 @@ def array_table(expr: Expr) -> dict:
             if not isinstance(tensor, TensorSymbol):
                 continue
             name = _variable_name(tensor)
-            symbol = str(tensor.symbol())
-            lower, upper = list(tensor.lower()), list(tensor.upper())
+            symbol = str(tensor.symbol)
+            lower, upper = list(tensor.lower), list(tensor.upper)
             n_pairs = min(len(lower), len(upper))
 
             base, separator, suffix = symbol.rpartition(BLOCK_SEPARATOR)
@@ -544,9 +544,7 @@ def array_table(expr: Expr) -> dict:
                     else position - len(lower)
                 )
                 space, monomer, tag = _axis_facts(index)
-                block = (
-                    suffix[pair] if blocked and pair < len(suffix) else ""
-                )
+                block = suffix[pair] if blocked and pair < len(suffix) else ""
                 if tag and block and tag != block:
                     raise ValueError(
                         f"tensor {symbol}: axis {position} is tagged "

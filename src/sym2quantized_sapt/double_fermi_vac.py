@@ -108,8 +108,12 @@ def contraction_double_vac(X, Y):
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
-                Dummy("a", is_molA=True, above_fermi=True,
-                      **shared_spin_tag(X.state, Y.state)),
+                Dummy(
+                    "a",
+                    is_molA=True,
+                    above_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, CreateFermion_A) and isinstance(
@@ -126,8 +130,12 @@ def contraction_double_vac(X, Y):
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
-                Dummy("i", is_molA=True, below_fermi=True,
-                      **shared_spin_tag(X.state, Y.state)),
+                Dummy(
+                    "i",
+                    is_molA=True,
+                    below_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, AnnihilateFermion_B) and isinstance(
@@ -144,8 +152,12 @@ def contraction_double_vac(X, Y):
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
-                Dummy("b", is_molB=True, above_fermi=True,
-                      **shared_spin_tag(X.state, Y.state)),
+                Dummy(
+                    "b",
+                    is_molB=True,
+                    above_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, CreateFermion_B) and isinstance(
@@ -162,8 +174,12 @@ def contraction_double_vac(X, Y):
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
                 Y.state,
-                Dummy("j", is_molB=True, below_fermi=True,
-                      **shared_spin_tag(X.state, Y.state)),
+                Dummy(
+                    "j",
+                    is_molB=True,
+                    below_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         else:

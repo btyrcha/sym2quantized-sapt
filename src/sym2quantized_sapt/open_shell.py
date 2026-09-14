@@ -100,16 +100,16 @@ def _blocked(tensor, pair_labels):
     declaring it on one block would canonicalize within the block --
     silently wrong for the mixed-spin amplitudes.
     """
-    name = str(tensor.symbol()) + BLOCK_SEPARATOR + "".join(pair_labels)
+    name = str(tensor.symbol) + BLOCK_SEPARATOR + "".join(pair_labels)
     return DoubleVacuumTensorSymbol(
-        name, tuple(tensor.upper()), tuple(tensor.lower())
+        name, tuple(tensor.upper), tuple(tensor.lower)
     )
 
 
 def _spin_blocked_term(coefficients, tensors, labels):
     upper, lower, pair_owner = [], [], []
     for tensor_index, tensor in enumerate(tensors):
-        ups, lows = list(tensor.upper()), list(tensor.lower())
+        ups, lows = list(tensor.upper), list(tensor.lower)
         if len(ups) != len(lows):
             raise ValueError(
                 f"spin blocking needs particle-conserving tensors; "
@@ -131,7 +131,7 @@ def _spin_blocked_term(coefficients, tensors, labels):
         factors = list(coefficients)
         offset = 0
         for tensor in tensors:
-            n_pairs = len(tensor.upper())
+            n_pairs = len(tensor.upper)
             pair_labels = [
                 spin_of_position[offset + k] for k in range(n_pairs)
             ]
@@ -214,16 +214,12 @@ def rhf_collapse(expr: Expr, labels=SPIN_LABELS) -> Expr:
     alphabet = set("".join(labels))
 
     def strip(tensor):
-        name = str(tensor.symbol())
+        name = str(tensor.symbol)
         base, separator, suffix = name.rpartition(BLOCK_SEPARATOR)
-        n_pairs = len(tensor.upper())
-        if (
-            separator
-            and len(suffix) == n_pairs
-            and set(suffix) <= alphabet
-        ):
+        n_pairs = len(tensor.upper)
+        if separator and len(suffix) == n_pairs and set(suffix) <= alphabet:
             return DoubleVacuumTensorSymbol(
-                base, tuple(tensor.upper()), tuple(tensor.lower())
+                base, tuple(tensor.upper), tuple(tensor.lower)
             )
         return tensor
 

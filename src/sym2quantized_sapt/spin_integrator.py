@@ -3,7 +3,6 @@ from sympy.core import Expr
 from sympy.physics.secondquant import TensorSymbol
 
 
-
 def _loop_partition(upper, lower):
     """The Goldstone loops of a term, as a partition of slot positions.
 

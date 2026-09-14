@@ -31,7 +31,7 @@ from sym2quantized_sapt.double_fermi_vac import (
     substitute_dummies_double_vac,
     wicks_double_vac,
 )
-from sym2quantized_sapt.operators import a, ad
+from sym2quantized_sapt.operators import A, Ad
 from sym2quantized_sapt.sapt_utils import get_R_nm
 from sym2quantized_sapt.open_shell import spin_integration_uhf
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol as DVT
@@ -43,8 +43,11 @@ _counter = [0]
 def index(letter, spin, **kw):
     _counter[0] += 1
     return symbols(
-        f"{letter}_{_counter[0]}", is_molA=True, cls=Dummy,
-        **SPIN[spin], **kw,
+        f"{letter}_{_counter[0]}",
+        is_molA=True,
+        cls=Dummy,
+        **SPIN[spin],
+        **kw,
     )
 
 
@@ -57,7 +60,10 @@ def w_tagged():
         sectors.append(
             Rational(1, 2)
             * DVT(f"w_{s1}{s2}", (p, p2), (q, q2))
-            * ad(q) * ad(q2) * a(p2) * a(p)
+            * Ad(q)
+            * Ad(q2)
+            * A(p2)
+            * A(p)
         )
     return Add(*sectors)
 
@@ -73,7 +79,7 @@ def r20_tagged(operator):
         holes = [index("i", s, below_fermi=True) for s in spins]
         particles = [index("a", s, above_fermi=True) for s in spins]
         excitation = (
-            ad(holes[0]) * ad(holes[1]) * a(particles[1]) * a(particles[0])
+            Ad(holes[0]) * Ad(holes[1]) * A(particles[1]) * A(particles[0])
         )
         amplitude = wicks_double_vac(
             excitation * operator,
@@ -94,7 +100,7 @@ def sector_weight(expr, block):
     total = 0
     for term in expr.args:
         for factor in term.args:
-            if isinstance(factor, DVT) and str(factor.symbol()) == (
+            if isinstance(factor, DVT) and str(factor.symbol) == (
                 "e_" + block
             ):
                 total += abs(
@@ -113,15 +119,16 @@ E2_tagged = wicks_double_vac(
     keep_only_fully_contracted=True,
     substitute_dummies=False,
 ).expand()
-print(f"UMP2, spin-tagged: {len(E2_tagged.args)} terms "
-      f"(validated against psi4 downstream)")
+print(
+    f"UMP2, spin-tagged: {len(E2_tagged.args)} terms "
+    f"(validated against psi4 downstream)"
+)
 
 # ---- the per-loop route, and its pinned failure ------------------------
 p, q = symbols("p q", is_molA=True, cls=Dummy)
 p2, q2 = symbols("p' q'", is_molA=True, cls=Dummy)
 W_spatial = (
-    Rational(1, 2) * DVT("w", (p, p2), (q, q2))
-    * ad(q) * ad(q2) * a(p2) * a(p)
+    Rational(1, 2) * DVT("w", (p, p2), (q, q2)) * Ad(q) * Ad(q2) * A(p2) * A(p)
 )
 E2_spatial = substitute_dummies_double_vac(
     wicks_double_vac(
@@ -137,8 +144,9 @@ tagged_mixed = sector_weight(E2_tagged, "ab")
 perloop_mixed = sector_weight(E2_perloop, "ab") + sector_weight(
     E2_perloop, "ba"
 )
-print(f"mixed-sector weight: tagged {tagged_mixed}, "
-      f"per-loop {perloop_mixed}")
+print(
+    f"mixed-sector weight: tagged {tagged_mixed}, " f"per-loop {perloop_mixed}"
+)
 assert tagged_mixed == 2 * perloop_mixed, (
     "the per-loop route halves the opposite-spin sector - if this "
     "ever stops holding, revisit the warning on spin_integration_uhf"

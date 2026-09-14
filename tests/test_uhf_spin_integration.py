@@ -1,5 +1,5 @@
 import pytest
-from sympy import Add, Mul, symbols
+from sympy import Add, Mul, symbols, Dummy
 
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
 from sym2quantized_sapt.sapt_utils import get_R_nm, get_V_operator
@@ -12,6 +12,8 @@ from sym2quantized_sapt.spin_integrator import (
     spin_integration,
 )
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
+from sym2quantized_sapt.operators import A, Ad
+from sym2quantized_sapt.code_generator import array_table
 
 
 def _disp20_indices():
@@ -34,8 +36,8 @@ def test_loop_partition_of_a_two_loop_term():
 
     upper, lower = [], []
     for tensor in (t, v):
-        upper += list(tensor.upper())
-        lower += list(tensor.lower())
+        upper += list(tensor.upper)
+        lower += list(tensor.lower)
     loops = _loop_partition(upper, lower)
 
     # two loops, each threading one slot pair of t and one of v
@@ -60,9 +62,7 @@ def test_uhf_blocks_a_two_loop_term_four_ways():
 def test_rhf_collapse_recovers_spin_integration():
     t, v = _t_and_v()
 
-    assert rhf_collapse(spin_integration_uhf(t * v)) == spin_integration(
-        t * v
-    )
+    assert rhf_collapse(spin_integration_uhf(t * v)) == spin_integration(t * v)
 
 
 def test_uhf_on_derived_e_disp20():
@@ -77,11 +77,11 @@ def test_uhf_on_derived_e_disp20():
     # consistent labels on the denominator and both integrals
     assert len(blocked.args) == 4
     names = sorted(
-        str(factor.symbol())
+        str(factor.symbol)
         for term in blocked.args
         for factor in term.args
         if isinstance(factor, DoubleVacuumTensorSymbol)
-        and str(factor.symbol()).startswith("e_")
+        and str(factor.symbol).startswith("e_")
     )
     assert names == ["e_aa", "e_ab", "e_ba", "e_bb"]
     assert rhf_collapse(blocked) == spin_integration(E)
@@ -100,11 +100,11 @@ def test_blocked_symmetries_are_not_carried_over():
     for term in blocked.args:
         for factor in term.args:
             if isinstance(factor, DoubleVacuumTensorSymbol):
-                assert not factor.get_symmetries()
+                assert not factor.symmetries
 
 
 def test_unbalanced_tensor_is_rejected():
-    a, i, b, j = _disp20_indices()
+    a, i, _, j = _disp20_indices()
     lopsided = DoubleVacuumTensorSymbol("x", (i, j), (a,))
 
     with pytest.raises(ValueError, match="particle-conserving"):
@@ -116,8 +116,6 @@ def test_numbers_pass_through():
 
 
 def test_array_table_defines_blocked_arrays():
-    from sym2quantized_sapt.code_generator import array_table
-
     t, v = _t_and_v()
     table = array_table(spin_integration_uhf(t * v))
 
@@ -134,8 +132,6 @@ def test_array_table_defines_blocked_arrays():
 
 
 def test_array_table_leaves_unblocked_tensors_unlabelled():
-    from sym2quantized_sapt.code_generator import array_table
-
     t, v = _t_and_v()
     table = array_table(t * v)
 
@@ -146,21 +142,18 @@ def test_array_table_leaves_unblocked_tensors_unlabelled():
 def test_fallback_summation_dummy_inherits_the_spin_tag():
     # a bubble: two general same-spin indices contract, and the fresh
     # particle/hole summation dummy must range over THAT spin only
-    from sympy import Dummy, symbols as sy
-    from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
-    from sym2quantized_sapt.operators import a, ad
 
-    p = sy("p", is_molA=True, is_alpha=True, cls=Dummy)
-    q = sy("q", is_molA=True, is_alpha=True, cls=Dummy)
+    p = symbols("p", is_molA=True, is_alpha=True, cls=Dummy)
+    q = symbols("q", is_molA=True, is_alpha=True, cls=Dummy)
     u = DoubleVacuumTensorSymbol("u_a", (p,), (q,))
 
     result = wicks_double_vac(
-        u * ad(q) * a(p), keep_only_fully_contracted=True,
+        u * Ad(q) * A(p),
+        keep_only_fully_contracted=True,
         substitute_dummies=False,
     )
 
     tags = [
-        index.assumptions0.get("is_alpha")
-        for index in result.atoms(Dummy)
+        index.assumptions0.get("is_alpha") for index in result.atoms(Dummy)
     ]
     assert tags and all(tags)
