@@ -386,10 +386,11 @@ def test_tensor_and_mul_routes_agree_on_variable_names():
 # --------------------------------------------------------------------------
 # density fitting
 #
-# `generate_einsum(..., density_fitting=True)` replaces every intermolecular
-# two-electron integral `v^{p r}_{q s} = (p q | r s)` with its factorization
-# `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the three-index arrays `Qqp` and
-# `Qsr` in place of `v_qspr`. See `docs/notes/density-fitting.md`.
+# `generate_einsum(..., density_fitting=True)` replaces every two-electron
+# integral `v^{p r}_{q s} = (p q | r s)`, intermolecular or monomer-only, with
+# its factorization `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the three-index
+# arrays `Qqp` and `Qsr` in place of `v_qspr`. See
+# `docs/notes/density-fitting.md`.
 # --------------------------------------------------------------------------
 
 

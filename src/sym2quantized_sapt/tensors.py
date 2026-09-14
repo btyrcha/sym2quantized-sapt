@@ -6,9 +6,20 @@ from sympy.physics.secondquant import TensorSymbol
 class DoubleVacuumTensorSymbol(TensorSymbol):
     """
     Tensor symbols abstraction in double fermi vacuum
+
+    ``is_graph_vertex=False`` marks a tensor that is not a vertex of the
+    term's Goldstone / Hugenholtz graph, such as the resolvent
+    denominator e^{ij}_{ab} = 1 / (e_i + e_j - e_a - e_b): it weights
+    the lines crossing a cut between vertices rather than joining any.
+    Loop counting traces lines through vertices only.  A non-vertex
+    tensor's (upper_k, lower_k) slot pairing is arbitrary (``get_R_nm``
+    lets canonicalization permute upper and lower independently), so
+    tracing it like a vertex would merge loops that are really separate.
     """
 
-    def __new__(cls, symbol, upper, lower, symmetries=None):
+    def __new__(
+        cls, symbol, upper, lower, symmetries=None, is_graph_vertex=True
+    ):
         symbol = sympify(symbol)
         upper = Tuple(*upper)
         lower = Tuple(*lower)
@@ -27,7 +38,13 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
         else:
             symmetries = Tuple()
 
-        return TensorSymbol.__new__(cls, symbol, upper, lower, symmetries)
+        # stored in args (not as a Python attribute) so every SymPy
+        # rebuild - subs, xreplace, dummy substitution - carries it over
+        is_graph_vertex = sympify(bool(is_graph_vertex))
+
+        return TensorSymbol.__new__(
+            cls, symbol, upper, lower, symmetries, is_graph_vertex
+        )
 
     @property
     def symbol(self):
@@ -45,12 +62,17 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
     def symmetries(self):
         return self.args[3]
 
+    @property
+    def is_graph_vertex(self):
+        return bool(self.args[4])
+
     def _dagger_(self):
         return DoubleVacuumTensorSymbol(
             self.symbol,
             self.lower,
             self.upper,
             self.symmetries,
+            self.is_graph_vertex,
         )
 
     def _latex(self, printer):
@@ -68,7 +90,10 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
         return f"{self.symbol}({self.upper},{self.lower})"
 
     def _hashable_content(self):
-        return (self.symbol, self.upper, self.lower)
+        # the flag goes last: Basic.compare orders element-wise, so it
+        # only breaks ties between otherwise identical tensors and the
+        # canonical term order is unchanged
+        return (self.symbol, self.upper, self.lower, self.is_graph_vertex)
 
 
 _basic_sortkey = cmp_to_key(Basic.compare)

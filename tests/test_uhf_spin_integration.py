@@ -11,6 +11,7 @@ from sym2quantized_sapt.spin_integrator import (
     _loop_partition,
     spin_integration,
 )
+from test_spin_integrator import crossed_mp2_term, mp2_fluctuation_operator
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 from sym2quantized_sapt.operators import A, Ad
 from sym2quantized_sapt.code_generator import array_table
@@ -78,7 +79,8 @@ def test_uhf_on_derived_e_disp20():
     blocked = spin_integration_uhf(E)
 
     # one spatial term, two loops: exactly the four spin cases, with
-    # consistent labels on the denominator and both integrals
+    # consistent labels on the denominator (one per index) and both
+    # integrals (one per slot pair)
     assert len(blocked.args) == 4
 
     names = sorted(
@@ -89,8 +91,66 @@ def test_uhf_on_derived_e_disp20():
         and str(factor.symbol).startswith("e_")
     )
 
-    assert names == ["e_aa", "e_ab", "e_ba", "e_bb"]
+    assert names == ["e_aa_aa", "e_ab_ab", "e_ba_ba", "e_bb_bb"]
     assert rhf_collapse(blocked) == spin_integration(E)
+
+
+def _denominator_names(expr):
+    return sorted(
+        str(factor.symbol)
+        for term in expr.args
+        for factor in term.args
+        if isinstance(factor, DoubleVacuumTensorSymbol)
+        and not factor.is_graph_vertex
+    )
+
+
+def test_uhf_labels_a_crossed_denominator_per_index():
+    # e's slot pairs (i, a), (i1, a1) cross the loops (a, i1), (a1, i),
+    # so no per-pair label fits; e keeps its layout and each index takes
+    # the spin of its loop
+    term = crossed_mp2_term()
+
+    blocked = spin_integration_uhf(term)
+
+    assert len(blocked.args) == 4
+    assert _denominator_names(blocked) == [
+        "e_aa_aa",
+        "e_ab_ba",
+        "e_ba_ab",
+        "e_bb_bb",
+    ]
+    assert rhf_collapse(blocked) == spin_integration(term)
+
+
+def test_rhf_collapse_is_exact_for_mp2():
+    E2 = wicks_double_vac(
+        mp2_fluctuation_operator()
+        * get_R_nm(2, 0, mp2_fluctuation_operator()),
+        keep_only_fully_contracted=True,
+    )
+
+    assert rhf_collapse(spin_integration_uhf(E2)) == spin_integration(E2)
+
+
+def test_denominator_index_on_no_line_is_rejected():
+    a, i, _, _ = _disp20_indices()
+    e = DoubleVacuumTensorSymbol("e", (i,), (a,), is_graph_vertex=False)
+
+    with pytest.raises(ValueError, match="lie on none"):
+        spin_integration_uhf(Mul(2, e))
+
+
+def test_array_table_reads_per_index_denominator_labels():
+    blocked = spin_integration_uhf(crossed_mp2_term())
+    table = array_table(blocked)
+
+    entry = table["e_ab_ba_rraa"]
+    assert entry["base"] == "e" and entry["spin_block"] == "ab_ba"
+
+    # storage order: lower (a, a1) then upper (i, i1)
+    assert [axis["role"] for axis in entry["axes"]] == ["l", "l", "u", "u"]
+    assert [axis["spin"] for axis in entry["axes"]] == ["b", "a", "a", "b"]
 
 
 def test_blocked_symmetries_are_not_carried_over():

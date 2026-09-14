@@ -14,9 +14,10 @@ its own normalisation.
 
 **Per-loop summation** (:func:`spin_integration_uhf`) is the cheap
 route: spin is constant along a Goldstone loop, so a spatial term
-becomes ``2**loops`` spin-blocked copies.  It is valid only where no
-projector carries two or more index pairs in one space -- see the
-warning on the function, which a benchmark had to teach us.
+becomes ``2**loops`` spin-blocked copies.  Loops are traced through
+graph vertices only; a resolvent denominator is built with
+``is_graph_vertex=False`` and takes its spins from the loops its
+indices lie on.
 
 :func:`rhf_collapse` is the consistency gate for the second route; read
 its docstring for what that gate can and cannot prove.
@@ -28,7 +29,10 @@ from sympy import Add, Mul
 from sympy.core import Expr
 from sympy.physics.secondquant import TensorSymbol
 
-from sym2quantized_sapt.spin_integrator import _loop_partition
+from sym2quantized_sapt.spin_integrator import (
+    _is_graph_vertex,
+    _loop_partition,
+)
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 __all__ = [
@@ -87,6 +91,12 @@ def opposite_spins(x, y) -> bool:
 # spin" structure of unrestricted arrays: t_ab[i, j, a, b] has the
 # (i, a) line alpha and the (j, b) line beta, v_ba likewise, and the
 # spatial index ranges differ per spin.
+#
+# A tensor that is not a graph vertex (is_graph_vertex=False, the
+# resolvent denominator) joins no lines, so its slot pairing means
+# nothing and can disagree with the loops: e^{i j}_{a b} may have i and b on one loop.
+# It is labelled per index instead, upper spins then lower spins --
+# e_ab_ba[i, j, a, b] -- and keeps its spatial index layout.
 
 #: default spin labels, alpha then beta
 SPIN_LABELS = ("a", "b")
@@ -94,8 +104,10 @@ SPIN_LABELS = ("a", "b")
 BLOCK_SEPARATOR = "_"
 
 
-def _blocked(tensor, pair_labels):
-    """``tensor`` renamed to its spin block, e.g. ``t`` -> ``t_ab``.
+def _blocked(tensor, *label_groups):
+    """``tensor`` renamed to its spin block, e.g. ``t`` -> ``t_ab``, or
+    ``e`` -> ``e_ab_ba`` for a tensor that is not a graph vertex (one
+    label group for the upper indices, one for the lower).
 
     Declared permutation symmetries are deliberately NOT carried over:
     a pair symmetry like ``t^{ij}_{ab} = t^{ji}_{ba}`` maps *between*
@@ -103,17 +115,58 @@ def _blocked(tensor, pair_labels):
     declaring it on one block would canonicalize within the block --
     silently wrong for the mixed-spin amplitudes.
     """
-    name = str(tensor.symbol) + BLOCK_SEPARATOR + "".join(pair_labels)
+    name = BLOCK_SEPARATOR.join((str(tensor.symbol), *label_groups))
 
     return DoubleVacuumTensorSymbol(
-        name, tuple(tensor.upper), tuple(tensor.lower)
+        name,
+        tuple(tensor.upper),
+        tuple(tensor.lower),
+        is_graph_vertex=_is_graph_vertex(tensor),
     )
 
 
-def _spin_blocked_term(coefficients, tensors, labels):
-    upper, lower, pair_owner = [], [], []
+def _split_block(tensor, labels=SPIN_LABELS):
+    """``(base, upper_spins, lower_spins)`` of a spin-blocked tensor --
+    one label per index, in slot order -- or ``None`` if ``tensor``
+    carries no block label.  Inverse of :func:`_blocked`."""
+    alphabet = set("".join(labels))
+    name = str(tensor.symbol)
+    n_upper, n_lower = len(tensor.upper), len(tensor.lower)
 
-    for tensor_index, tensor in enumerate(tensors):
+    if _is_graph_vertex(tensor):
+        base, separator, suffix = name.rpartition(BLOCK_SEPARATOR)
+
+        if (
+            separator
+            and n_upper == n_lower == len(suffix)
+            and set(suffix) <= alphabet
+        ):
+            return base, suffix, suffix
+
+        return None
+
+    rest, separator, lower_spins = name.rpartition(BLOCK_SEPARATOR)
+    base, separator_2, upper_spins = rest.rpartition(BLOCK_SEPARATOR)
+
+    if (
+        separator
+        and separator_2
+        and len(upper_spins) == n_upper
+        and len(lower_spins) == n_lower
+        and set(upper_spins + lower_spins) <= alphabet
+    ):
+        return base, upper_spins, lower_spins
+
+    return None
+
+
+def _spin_blocked_term(coefficients, tensors, labels):
+    upper, lower = [], []
+
+    for tensor in tensors:
+        if not _is_graph_vertex(tensor):
+            continue
+
         ups, lows = list(tensor.upper), list(tensor.lower)
 
         if len(ups) != len(lows):
@@ -125,7 +178,21 @@ def _spin_blocked_term(coefficients, tensors, labels):
 
         upper += ups
         lower += lows
-        pair_owner += [tensor_index] * len(ups)
+
+    on_lines = set(upper) | set(lower)
+    for tensor in tensors:
+        stray = [
+            index
+            for index in (*tensor.upper, *tensor.lower)
+            if index not in on_lines
+        ]
+
+        if stray:
+            raise ValueError(
+                f"{tensor} is not a graph vertex (is_graph_vertex=False), "
+                f"so its indices take their spin from the lines through "
+                f"the vertices; {stray} lie on none."
+            )
 
     loops = _loop_partition(upper, lower)
 
@@ -137,13 +204,29 @@ def _spin_blocked_term(coefficients, tensors, labels):
             for position in loop:
                 spin_of_position[position] = label
 
+        # an index has the spin of the line it lies on
+        spin_of_index = {}
+        for position, label in spin_of_position.items():
+            spin_of_index[upper[position]] = label
+            spin_of_index[lower[position]] = label
+
         factors = list(coefficients)
         offset = 0
         for tensor in tensors:
+            if not _is_graph_vertex(tensor):
+                factors.append(
+                    _blocked(
+                        tensor,
+                        "".join(spin_of_index[i] for i in tensor.upper),
+                        "".join(spin_of_index[i] for i in tensor.lower),
+                    )
+                )
+                continue
+
             n_pairs = len(tensor.upper)
-            pair_labels = [
+            pair_labels = "".join(
                 spin_of_position[offset + k] for k in range(n_pairs)
-            ]
+            )
             factors.append(_blocked(tensor, pair_labels))
             offset += n_pairs
 
@@ -159,7 +242,12 @@ def spin_integration_uhf(expr: Expr, labels=SPIN_LABELS) -> Expr:
     ``2**loops``, here each term becomes the explicit sum over one spin
     label per Goldstone loop, with every tensor replaced by its spin
     block: ``t`` becomes ``t_aa``, ``t_ab``, ... with one label per
-    slot pair.  Indices in the returned expression refer to the spatial
+    slot pair.  A tensor built with ``is_graph_vertex=False`` (the
+    resolvent denominator) is not a vertex, so it is left out of the
+    loops and labelled per index instead, upper then lower:
+    ``e_ab_ba``.  Every one of its indices must lie on a line through
+    the vertices; otherwise ``ValueError`` is raised.
+    Indices in the returned expression refer to the spatial
     orbitals *of that spin* -- the alpha and beta index ranges of an
     unrestricted reference differ, which is why the blocks are distinct
     arrays rather than views of one.
@@ -172,26 +260,6 @@ def spin_integration_uhf(expr: Expr, labels=SPIN_LABELS) -> Expr:
     Setting all blocks of every tensor equal must reproduce
     :func:`spin_integration` term by term -- the RHF collapse; see
     :func:`rhf_collapse` for the symbolic form of that gate.
-
-    .. warning::
-
-       The per-loop route is only as correct as the spatial expression
-       it is applied to, and the spatial-Wick + ``2**loops`` pipeline
-       is **not** valid for expressions containing a resolvent (or any
-       projector) with two or more index pairs in one space: part of
-       the projector's permutation multiplicity flows through
-       exchange-wired contractions, which spatial terms can only carry
-       with same-spin labels.  Concretely, ``<W R_(2,0) W>`` treated
-       this way halves the opposite-spin MP2 energy (its closed-shell
-       limit is ``1.5A - B`` instead of ``2A - B``) -- caught by the
-       psi4 benchmark, see ``docs/notes/uhf-spin-summation.md``.  For
-       MP-n and any multi-pair projector, tag the indices with
-       ``is_alpha`` / ``is_beta`` instead and let Wick's theorem do
-       the spin bookkeeping (the contraction rule vanishes across
-       spin tags), with per-sector resolvent normalisation --
-       ``1/(n!)**2`` per same-spin pair group, distinguishable pairs
-       unpermuted.  Single-pair-per-space projections (``R_(1,1)``
-       dispersion, the eq 46 dressings) are unaffected.
     """
     if isinstance(expr, Add):
         return Add(*[spin_integration_uhf(arg, labels) for arg in expr.args])
@@ -224,19 +292,19 @@ def rhf_collapse(expr: Expr, labels=SPIN_LABELS) -> Expr:
     exactly.  That identity is the machine-checkable gate every UHF
     derivation should pass before its blocks are trusted.
     """
-    alphabet = set("".join(labels))
 
     def strip(tensor):
-        name = str(tensor.symbol)
-        base, separator, suffix = name.rpartition(BLOCK_SEPARATOR)
-        n_pairs = len(tensor.upper)
+        split = _split_block(tensor, labels)
 
-        if separator and len(suffix) == n_pairs and set(suffix) <= alphabet:
-            return DoubleVacuumTensorSymbol(
-                base, tuple(tensor.upper), tuple(tensor.lower)
-            )
+        if split is None:
+            return tensor
 
-        return tensor
+        return DoubleVacuumTensorSymbol(
+            split[0],
+            tuple(tensor.upper),
+            tuple(tensor.lower),
+            is_graph_vertex=_is_graph_vertex(tensor),
+        )
 
     if isinstance(expr, Add):
         return Add(*[rhf_collapse(arg, labels) for arg in expr.args])

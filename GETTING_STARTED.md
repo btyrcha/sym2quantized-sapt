@@ -98,7 +98,8 @@ expensive to rediscover.
 
 ## 4. Open shell
 
-Two routes, and choosing wrongly is a documented trap.
+Two routes that agree on UMP2; per-loop is cheaper, spin tags are more
+general.
 
 Both routes live in `sym2quantized_sapt/open_shell.py`; the restricted
 path in `spin_integrator.py` is untouched by either.
@@ -112,11 +113,13 @@ its own normalisation — `1/(n!)**2` per group of same-spin
 
 **Per-loop summation** (`spin_integration_uhf`) is the cheap route:
 spin is constant along a Goldstone loop, so each term becomes
-`2**loops` spin-blocked copies.  It is valid **only** where no
-projector carries two or more index pairs in one space.  Applied to a
-doubles resolvent it halves the opposite-spin MP2 energy *while
-passing its own RHF-collapse gate* — see the warning on the function
-and `docs/notes/uhf-spin-summation.md`.
+`2**loops` spin-blocked copies.  Loops are traced only through graph
+vertices: the resolvent denominator is not one, is built with
+`is_graph_vertex=False`, and gets one spin label per index
+(`e_ab_ba`).  A hand-built denominator multiplied in without that flag
+merges loops — exactly the bug that once halved the opposite-spin MP2
+energy *while passing the RHF-collapse gate*; see
+`docs/notes/uhf-spin-summation.md`.
 
 `rhf_collapse` strips the block labels and must reproduce
 `spin_integration` exactly.  Use it — but see §7 on what it can and
@@ -140,8 +143,9 @@ The single most important lesson from using this package in anger:
 Two real examples, both of which passed their own internal check while
 being wrong: an energy-shaped test of the form `<sigma|X sigma>` cannot
 pin the normalisation of `X`, because a scalar factor cancels; and the
-per-loop spin summation passes `rhf_collapse` on an expression whose
-opposite-spin channel is a factor of two too small.
+per-loop spin summation passed `rhf_collapse` while a loop-counting bug
+(the denominator traced as a vertex) left its opposite-spin channel a
+factor of two too small.
 
 So: gate against an **external** reference (another program, a
 published number, an independent reimplementation).  Where you can,
@@ -156,8 +160,8 @@ derivation without a numerical stamp as a hypothesis.
 
 In this repository: `examples/sapt_pol20.py` (canonical),
 `examples/sapt_exch10.py` and `examples/sapt_exch-ind200.py`
-(exchange machinery), `examples/ump2_ump3_uhf.py` (spin tags, and a
-pinned demonstration of the per-loop limitation),
+(exchange machinery), `examples/ump2_uhf.py` (UMP2 by both
+open-shell routes, next to conventional UMP2),
 `examples/derivation_registry_demo.py` (registry round trip).
 
 A downstream application drove most of the above and keeps a larger

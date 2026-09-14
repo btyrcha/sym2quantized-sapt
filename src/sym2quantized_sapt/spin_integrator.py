@@ -44,6 +44,17 @@ def _loop_partition(upper, lower):
     return loops
 
 
+def _is_graph_vertex(tensor) -> bool:
+    """Whether ``tensor`` is a vertex of the term's Goldstone graph,
+    i.e. whether loop counting traces its slot pairs as lines.
+
+    False for tensors built with ``is_graph_vertex=False``, such as the
+    resolvent denominator.  A plain SymPy ``TensorSymbol`` has no such
+    flag and is always a vertex.
+    """
+    return getattr(tensor, "is_graph_vertex", True)
+
+
 def _count_loops(upper: Expr, lower: Expr) -> int:
     """
     Helper function for spin integration.
@@ -68,7 +79,7 @@ def spin_integration(expr: Expr) -> Expr:
         upper = []
         lower = []
         for elem in expr.args:
-            if isinstance(elem, TensorSymbol):
+            if isinstance(elem, TensorSymbol) and _is_graph_vertex(elem):
                 upper += [index for index in elem.upper]
                 lower += [index for index in elem.lower]
 
@@ -77,6 +88,9 @@ def spin_integration(expr: Expr) -> Expr:
         return Mul(2 ** (l), expr)
 
     elif isinstance(expr, TensorSymbol):
+        if not _is_graph_vertex(expr):
+            return expr
+
         upper = expr.upper
         lower = expr.lower
 

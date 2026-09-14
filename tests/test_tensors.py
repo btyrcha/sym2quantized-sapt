@@ -182,3 +182,38 @@ def test_coupled_symmetry_canonicalizes_both_spellings():
 
     assert left == right
     assert left + right == 2 * left
+
+
+def test_is_graph_vertex_defaults_to_true():
+    """An ordinary tensor is a vertex of the Goldstone graph."""
+    a_1, _, i_1, _ = _pair_indices()
+
+    assert DoubleVacuumTensorSymbol("t", (i_1,), (a_1,)).is_graph_vertex
+
+
+def test_is_graph_vertex_survives_rebuilds():
+    """The flag is stored in args, so SymPy rebuilds carry it over.
+
+    Losing it would silently turn a denominator back into a vertex.
+    """
+    a_1, a_2, i_1, i_2 = _pair_indices()
+    i_3 = symbols("i_3", is_molA=True, below_fermi=True, cls=Dummy)
+    e = DoubleVacuumTensorSymbol(
+        "e", (i_1, i_2), (a_1, a_2), FULL_SYMMETRIES, is_graph_vertex=False
+    )
+
+    assert not e.xreplace({i_1: i_3}).is_graph_vertex
+    assert not e.subs(i_1, i_3).is_graph_vertex
+    assert not Dagger(e).is_graph_vertex
+
+
+def test_is_graph_vertex_is_part_of_equality():
+    """Tensors that differ only in the flag must not be merged."""
+    a_1, _, i_1, _ = _pair_indices()
+
+    vertex = DoubleVacuumTensorSymbol("e", (i_1,), (a_1,))
+    not_vertex = DoubleVacuumTensorSymbol(
+        "e", (i_1,), (a_1,), is_graph_vertex=False
+    )
+
+    assert vertex != not_vertex
