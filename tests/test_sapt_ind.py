@@ -3,7 +3,7 @@ import pytest
 from sympy import symbols, Dummy, latex
 
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
-from sym2quantized_sapt.operators import a, ad, b, bd
+from sym2quantized_sapt.operators import A, Ad, B, Bd
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
@@ -29,17 +29,17 @@ def test_can_evaluate_sapt_indA_20_energy():
     V0 = symbols("V_0")
 
     V = (
-        v * ad(q) * a(p) * bd(s) * b(r)
-        + vA * bd(s) * b(r)
-        + vB * ad(q) * a(p)
+        v * Ad(q) * A(p) * Bd(s) * B(r)
+        + vA * Bd(s) * B(r)
+        + vB * Ad(q) * A(p)
         + V0
     )
 
     T10 = (
         DoubleVacuumTensorSymbol("o_B", (i1,), (a1,))
         / DoubleVacuumTensorSymbol("e", (a1,), (i1,))
-        * ad(a1)
-        * a(i1)
+        * Ad(a1)
+        * A(i1)
     )
 
     expr = V * T10
@@ -72,17 +72,17 @@ def test_can_evaluate_sapt_indB_20_energy():
     V0 = symbols("V_0")
 
     V = (
-        v * ad(q) * a(p) * bd(s) * b(r)
-        + vA * bd(s) * b(r)
-        + vB * ad(q) * a(p)
+        v * Ad(q) * A(p) * Bd(s) * B(r)
+        + vA * Bd(s) * B(r)
+        + vB * Ad(q) * A(p)
         + V0
     )
 
     T01 = (
         DoubleVacuumTensorSymbol("o_A", (j1,), (b1,))
         / DoubleVacuumTensorSymbol("e", (b1,), (j1,))
-        * bd(b1)
-        * b(j1)
+        * Bd(b1)
+        * B(j1)
     )
 
     expr = V * T01

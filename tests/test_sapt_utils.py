@@ -1,6 +1,12 @@
 from sympy import Dummy, symbols, latex
 
-from sym2quantized_sapt.sapt_utils import get_a_operator, get_b_operator
+from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
+from sym2quantized_sapt.sapt_utils import (
+    get_V_operator,
+    get_a_operator,
+    get_b_operator,
+)
+from sym2quantized_sapt.spin_integrator import spin_integration
 
 
 def test_get_a_operator_for_one_electron():
@@ -79,3 +85,44 @@ def test_generated_indicies_are_free():
     """
     assert not get_a_operator(n=2).atoms(Dummy)
     assert not get_b_operator(n=2).atoms(Dummy)
+
+
+def test_every_call_builds_its_own_summation_indices():
+    """
+    `get_V_operator` has to hand out fresh dummies on every call.
+
+    The summation indices are `Dummy` objects, and two factors holding the
+    same `Dummy` are summed over one index rather than two - see
+    `test_reusing_one_operator_object_in_a_product_collapses_it`.
+    """
+    first = get_V_operator()
+    second = get_V_operator()
+
+    assert first.atoms(Dummy)
+    assert not first.atoms(Dummy) & second.atoms(Dummy)
+
+
+def test_reusing_one_operator_object_in_a_product_collapses_it():
+    """
+    An operator that appears twice in a product needs to be built twice.
+
+    `V * V` from a single object shares `p, q, r, s` between the two
+    factors, so every index is summed once instead of twice: the product
+    degenerates into a product of traces, and terms such as the dispersion
+    -shaped `v^{ab}_{ij} v^{ij}_{ab}` are missing outright. Nothing raises.
+    """
+    V = get_V_operator()
+
+    reused = spin_integration(
+        wicks_double_vac(V * V, keep_only_fully_contracted=True)
+    )
+    fresh = spin_integration(
+        wicks_double_vac(
+            get_V_operator() * get_V_operator(),
+            keep_only_fully_contracted=True,
+        )
+    )
+
+    assert reused != fresh
+    assert "v^{ab}_{ij} v^{ij}_{ab}" in latex(fresh)
+    assert "v^{ab}_{ij} v^{ij}_{ab}" not in latex(reused)

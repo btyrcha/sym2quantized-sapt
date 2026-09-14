@@ -7,7 +7,7 @@ from sym2quantized_sapt.double_fermi_vac import (
     evaluate_deltas_double_vac,
 )
 
-from sym2quantized_sapt.operators import a, ad, b, bd
+from sym2quantized_sapt.operators import A, Ad, B, Bd
 
 
 def test_can_evaluate_one_mol_contraction():
@@ -15,7 +15,7 @@ def test_can_evaluate_one_mol_contraction():
 
     p, q, r, s = symbols("p q r s", is_molA=True, cls=Dummy)
 
-    expr = ad(p) * ad(q) * a(r) * a(s)
+    expr = Ad(p) * Ad(q) * A(r) * A(s)
     expr = _get_contractions_double_vac(expr.args)
     expr = expand(expr)
     expr = evaluate_deltas_double_vac(expr)
@@ -30,7 +30,7 @@ def test_can_evaluate_two_mol_contraction():
     p, q = symbols("p q", is_molA=True, cls=Dummy)
     r, s = symbols("r s", is_molB=True, cls=Dummy)
 
-    expr = ad(q) * a(p) * bd(s) * b(r)
+    expr = Ad(q) * A(p) * Bd(s) * B(r)
     expr = _get_contractions_double_vac(expr.args)
     expr = expand(expr)
     expr = evaluate_deltas_double_vac(expr)

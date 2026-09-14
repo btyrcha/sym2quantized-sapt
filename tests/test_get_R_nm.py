@@ -42,11 +42,11 @@ def test_R_11_carries_dispersion_index_structure():
     """e and v share (i, j) upper / (a, b) lower - the E(20)_disp shape."""
     result = get_R_nm(1, 1, get_V_operator())
 
-    by_symbol = {str(t.symbol()): t for t in _tensors_of(result)}
+    by_symbol = {str(t.symbol): t for t in _tensors_of(result)}
 
     assert set(by_symbol) == {"e", "v"}
-    assert by_symbol["e"].upper() == by_symbol["v"].upper()
-    assert by_symbol["e"].lower() == by_symbol["v"].lower()
+    assert by_symbol["e"].upper == by_symbol["v"].upper
+    assert by_symbol["e"].lower == by_symbol["v"].lower
 
 
 def test_R_20_of_V_vanishes():
@@ -110,8 +110,8 @@ def test_R_20_denominator_carries_the_full_permutation_symmetry():
     """
     result = get_R_nm(2, 0, get_a_operator(n=2))
 
-    by_symbol = {str(t.symbol()): t for t in _tensors_of(result.args[0])}
-    symmetries = by_symbol["e"].get_symmetries()
+    by_symbol = {str(t.symbol): t for t in _tensors_of(result.args[0])}
+    symmetries = by_symbol["e"].symmetries
 
     assert len(symmetries) == 4
     for upper, lower in symmetries:
