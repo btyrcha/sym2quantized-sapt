@@ -521,7 +521,8 @@ def array_table(expr: Expr) -> dict:
         for tensor in factors:
             if not isinstance(tensor, TensorSymbol):
                 continue
-            name = _variable_name(tensor)
+
+            name = _variable_name(tensor)[0]  # tuple unpacking
             symbol = str(tensor.symbol)
             lower, upper = list(tensor.lower), list(tensor.upper)
             n_pairs = min(len(lower), len(upper))
