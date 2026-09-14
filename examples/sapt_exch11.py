@@ -17,7 +17,7 @@ results", The Journal of chemical physics 100 (2), 1312 (1994).
 from sympy import symbols, Dummy
 from sympy import expand as sy_expand
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac, commutator
-from sym2quantized_sapt.operators import a, ad, b, bd
+from sym2quantized_sapt.operators import A, Ad, B, Bd
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 from sym2quantized_sapt.utils import format_expr
@@ -53,19 +53,19 @@ vB = DoubleVacuumTensorSymbol("(v_B)", (q,), (p,))
 V0 = DoubleVacuumTensorSymbol("V_0", (), ())
 
 V_dagger = (
-    v * ad(p) * a(q) * bd(r) * b(s)
-    + vA * bd(r) * b(s)
-    + vB * ad(p) * a(q)
+    v * Ad(p) * A(q) * Bd(r) * B(s)
+    + vA * Bd(r) * B(s)
+    + vB * Ad(p) * A(q)
     + V0
 )
 
 
 V10_dash_dagger = (
-    DoubleVacuumTensorSymbol("o_B", (a2,), (i2,)) * ad(i2) * a(a2)
+    DoubleVacuumTensorSymbol("o_B", (a2,), (i2,)) * Ad(i2) * A(a2)
 )
 
 V01_dash_dagger = (
-    DoubleVacuumTensorSymbol("o_A", (b2,), (j2,)) * bd(j2) * b(b2)
+    DoubleVacuumTensorSymbol("o_A", (b2,), (j2,)) * Bd(j2) * B(b2)
 )
 
 V11_dash_dagger = (
@@ -80,10 +80,10 @@ V11_dash_dagger = (
             j2,
         ),
     )
-    * ad(i2)
-    * a(a2)
-    * bd(j2)
-    * b(b2)
+    * Ad(i2)
+    * A(a2)
+    * Bd(j2)
+    * B(b2)
 )
 
 V_dash_dagger = V10_dash_dagger + V01_dash_dagger + V11_dash_dagger
@@ -92,34 +92,34 @@ V_dash_dagger = V10_dash_dagger + V01_dash_dagger + V11_dash_dagger
 P = (
     -DoubleVacuumTensorSymbol("s", (r1,), (q1,))
     * DoubleVacuumTensorSymbol("s", (p1,), (s1,))
-    * ad(q1)
-    * a(p1)
-    * bd(s1)
-    * b(r1)
+    * Ad(q1)
+    * A(p1)
+    * Bd(s1)
+    * B(r1)
 )
 
 
 P10_dash = (
     -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
     * DoubleVacuumTensorSymbol("s", (i1,), (j1,))
-    * ad(a1)
-    * a(i1)
+    * Ad(a1)
+    * A(i1)
 )
 
 P01_dash = (
     -DoubleVacuumTensorSymbol("s", (j1,), (i1,))
     * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
-    * bd(b1)
-    * b(j1)
+    * Bd(b1)
+    * B(j1)
 )
 
 P11_dash = (
     -DoubleVacuumTensorSymbol("s", (j1,), (a1,))
     * DoubleVacuumTensorSymbol("s", (i1,), (b1,))
-    * ad(a1)
-    * a(i1)
-    * bd(b1)
-    * b(j1)
+    * Ad(a1)
+    * A(i1)
+    * Bd(b1)
+    * B(j1)
 )
 
 P_dash = P10_dash + P01_dash + P11_dash
@@ -139,10 +139,10 @@ T20_part1 = (
             a4,
         ),
     )
-    * ad(a3)
-    * ad(a4)
-    * a(i4)
-    * a(i3)
+    * Ad(a3)
+    * Ad(a4)
+    * A(i4)
+    * A(i3)
 )
 
 T20_part2 = (
@@ -159,10 +159,10 @@ T20_part2 = (
             a4,
         ),
     )
-    * ad(a3)
-    * ad(a4)
-    * a(i4)
-    * a(i3)
+    * Ad(a3)
+    * Ad(a4)
+    * A(i4)
+    * A(i3)
 )
 
 T20 = T20_part1 + T20_part2
@@ -181,10 +181,10 @@ T20_part1_dagger = (
             i4,
         ),
     )
-    * ad(i3)
-    * ad(i4)
-    * a(a4)
-    * a(a3)
+    * Ad(i3)
+    * Ad(i4)
+    * A(a4)
+    * A(a3)
 )
 
 T20_part2_dagger = (
@@ -201,10 +201,10 @@ T20_part2_dagger = (
             i3,
         ),
     )
-    * ad(i3)
-    * ad(i4)
-    * a(a4)
-    * a(a3)
+    * Ad(i3)
+    * Ad(i4)
+    * A(a4)
+    * A(a3)
 )
 
 T20_dagger = T20_part1_dagger + T20_part2_dagger

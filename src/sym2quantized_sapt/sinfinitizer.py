@@ -15,8 +15,8 @@ def count_loops(expr: Mul) -> int:
     lower = []
     for elem in expr.args:
         if isinstance(elem, TensorSymbol):
-            upper += [index for index in elem.upper()]
-            lower += [index for index in elem.lower()]
+            upper += [index for index in elem.upper]
+            lower += [index for index in elem.lower]
     return _count_loops(upper, lower)
 
 
@@ -183,11 +183,11 @@ def sinfinitizer(upper_tensors: tuple, lower_tensors: tuple) -> Expr:
     idx_down_out = []
 
     for t in upper_tensors:
-        idx_up_in += t.upper()
-        idx_up_out += t.lower()
+        idx_up_in += t.upper
+        idx_up_out += t.lower
     for t in lower_tensors:
-        idx_down_in += t.upper()
-        idx_down_out += t.lower()
+        idx_down_in += t.upper
+        idx_down_out += t.lower
 
     idx_in = idx_up_in + idx_down_in
     idx_out = idx_up_out + idx_down_out

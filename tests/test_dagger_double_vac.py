@@ -4,7 +4,7 @@ from sympy import symbols, Dummy, latex
 
 from sympy.physics.secondquant import Dagger
 
-from sym2quantized_sapt.operators import a, ad, b, bd
+from sym2quantized_sapt.operators import A, Ad, B, Bd
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
@@ -14,7 +14,7 @@ def test_can_evaluate_simple_dagger_molA():
     a1 = symbols("a", is_molA=True, above_fermi=True, cls=Dummy)
     i1 = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
 
-    expr = ad(a1) * a(i1)
+    expr = Ad(a1) * A(i1)
     expr = Dagger(expr)
 
     tested_expr = latex(expr)
@@ -28,7 +28,7 @@ def test_can_evaluate_simple_dagger_molB():
     b1 = symbols("b", is_molB=True, below_fermi=True, cls=Dummy)
     j1 = symbols("j", is_molB=True, below_fermi=True, cls=Dummy)
 
-    expr = bd(b1) * b(j1)
+    expr = Bd(b1) * B(j1)
     expr = Dagger(expr)
 
     tested_expr = latex(expr)
@@ -41,7 +41,7 @@ def test_can_evaluate_four_operator_dagger_molA():
 
     p, p1, q, q1 = symbols("p p_1 q q_1", is_molA=True, cls=Dummy)
 
-    expr = ad(p) * ad(p1) * a(q1) * a(q)
+    expr = Ad(p) * Ad(p1) * A(q1) * A(q)
     expr = Dagger(expr)
 
     tested_expr = latex(expr)
@@ -54,7 +54,7 @@ def test_can_evaluate_four_operator_dagger_molB():
 
     r, r1, s, s1 = symbols("r r_1 s s_1", is_molB=True, cls=Dummy)
 
-    expr = bd(r) * bd(r1) * b(s1) * b(s)
+    expr = Bd(r) * Bd(r1) * B(s1) * B(s)
     expr = Dagger(expr)
 
     tested_expr = latex(expr)
@@ -104,7 +104,7 @@ def test_can_evaluate_mixed_dagger():
         ),
     )
 
-    expr = v * ad(q) * a(p) * bd(s) * b(r)
+    expr = v * Ad(q) * A(p) * Bd(s) * B(r)
     expr = Dagger(expr)
     tested_expr = latex(expr)
 
