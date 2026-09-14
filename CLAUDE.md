@@ -115,6 +115,14 @@ range — and silently collapses everything derived from it; that was a real bug
 and pinned by `test_generated_indicies_are_free`. `get_Pn_operator` and `get_R_nm` do use `Dummy`,
 correctly: they contract their own indices within the expression they build.
 
+**Denominators are not graph vertices.** Loop counting (`spin_integration`,
+`spin_integration_uhf`) treats every tensor as a Goldstone/Hugenholtz vertex and traces its
+`(upper_k, lower_k)` slot pairs as lines, except tensors built with `is_graph_vertex=False`. `get_R_nm` sets that flag on its denominator `e`, whose pairing is arbitrary
+under its symmetries. A denominator *multiplied* in without the flag merges separate loops:
+`<W R_(2,0) W>` gives `1.5A − B` instead of `2A − B`, and the UHF opposite-spin sector halves.
+Nothing raises. Dividing by it (`v / e`) is safe, since a `Pow` is never traced. Pinned by
+`tests/test_spin_integrator.py`.
+
 ## Module map (`src/sym2quantized_sapt/`)
 
 - `operators.py` — `AnnihilateFermion_A/B`, `CreateFermion_A/B` subclassing SymPy fermion ops +
@@ -128,16 +136,24 @@ correctly: they contract their own indices within the expression they build.
   `preorder_traversal` order on purpose, because its sort key is not total and a set would hand
   the tie-break to per-process hash randomization. Do not turn it back into `term.atoms(Dummy)`.
 - `tensors.py` — `DoubleVacuumTensorSymbol` (symbol + upper/lower index tuples + optional
-  permutation symmetries applied at construction).
+  permutation symmetries applied at construction + `is_graph_vertex` flag).
 - `sapt_utils.py` — operator builders: interaction `V`, exchange operators `get_a/b_operator`,
   permutation operators `get_P2/P4/Pn_operator`, resolvent superoperator `get_R_nm`.
-- `spin_integrator.py` — `spin_integration` + `_count_loops` (Goldstone-diagram loop counting).
+- `spin_integrator.py` — `spin_integration` (RHF) + `_loop_partition` / `_count_loops`
+  (Goldstone-diagram loops; the partition is what spin bookkeeping keys off).
+- `open_shell.py` — **unrestricted references.** Spin tags (`opposite_spins`,
+  `shared_spin_tag`), which `double_fermi_vac` consults so contractions vanish
+  across opposite spins, and the per-loop route (`spin_integration_uhf`,
+  `rhf_collapse`). The two mechanisms are alternatives and agree on UMP2.
+  Blocks are labelled per slot pair (`t_ab`), non-vertex tensors per index
+  (`e_ab_ba`). → `docs/notes/uhf-spin-summation.md`
 - `sinfinitizer.py` — `sinfinitizer`: expands overlap integrals (S^∞), wiring tensors together in
   all ways and assigning signs from loop/hole-line parity.
 - `diagrams.py` — `get_only_linked`: keeps only connected (linked) terms via graph traversal.
 - `code_generator.py` — `generate_einsum`: SymPy expression → `np.einsum` source string.
-  `density_fitting=True` factorizes the intermolecular ERI `v` into two three-index
-  arrays (`v_abrs` → `Qar, Qbs`), one auxiliary index per ERI; no other tensor is touched.
+  `density_fitting=True` factorizes every ERI named exactly `v` (intermolecular or
+  monomer-only) into two three-index arrays (`v_abrs` → `Qar, Qbs`), one auxiliary index per
+  ERI; no other tensor is touched, including spin blocks `v_ab`.
   → `docs/notes/density-fitting.md`
 - `utils.py` — `format_expr` (LaTeX align formatting), `timeit` decorator.
 

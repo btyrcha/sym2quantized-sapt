@@ -1,7 +1,7 @@
 # Density fitting in `generate_einsum`
 
-`generate_einsum(expr, density_fitting=True)` replaces every intermolecular
-two-electron integral by its density-fitted factorization, so the generated
+`generate_einsum(expr, density_fitting=True)` replaces every two-electron
+integral `v` by its density-fitted factorization, so the generated
 code contracts three-index arrays instead of four-index ERIs:
 
 ```
@@ -18,18 +18,26 @@ Introduced as a prototype in `97c5081`; the contract below and the tests in
 
 ## What is factorized
 
-Only `v` — the intermolecular interaction integral `get_V_operator` builds.
-Everything else is emitted as usual: the monomer potentials `(v_A)` / `(v_B)`
-(which print as `v_A` / `v_B`, so they do not match the `v` test), the overlap
-`s`, the resolvent denominator `e`, and every amplitude. With no `v` in the
+Only `v` — the two-electron integral, which carries that name whether it is the
+intermolecular interaction integral `get_V_operator` builds or a monomer-only
+ERI (e.g. the fluctuation potential in `examples/ump2_uhf.py`). The match is on
+the exact name. Everything else is emitted as usual: the monomer potentials
+`(v_A)` / `(v_B)` (which print as `v_A` / `v_B`, so they do not match the `v`
+test), the overlap `s`, the resolvent denominator `e`, every amplitude, and the
+spin blocks `v_ab`, … from `spin_integration_uhf`. With no `v` in the
 expression the output is byte-identical to the non-fitted one.
+
+For a monomer-only `v` both factors come from the same monomer. Closed-shell
+MP2 from `<W R_(2,0) W>` gives the same energy fitted and unfitted, and matches
+the MP2 formula on random density-fitting-shaped integrals (checked
+2026-09-14, agreement ~1e-12).
 
 ## The two arrays
 
-`v` carries `upper = (p in A, r in B)` and `lower = (q in A, s in B)`. The
-lower indices come first in a variable name, so the four slots are
-`(q, s, p, r)` and the split pairs slot 0 with slot 2 and slot 1 with slot 3 —
-one array per monomer. For the canonical dispersion ERI `v^{a b}_{i j}` that
+The intermolecular `v` carries `upper = (p in A, r in B)` and
+`lower = (q in A, s in B)`. The lower indices come first in a variable name,
+so the four slots are `(q, s, p, r)` and the split pairs slot 0 with slot 2
+and slot 1 with slot 3 — one array per slot pair, here one per monomer. For the canonical dispersion ERI `v^{a b}_{i j}` that
 gives `Qar` and `Qbs`, matching the psi4numpy letters: A occupied `a`,
 A virtual `r`, B occupied `b`, B virtual `s`.
 

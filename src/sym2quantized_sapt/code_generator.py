@@ -3,6 +3,12 @@ import re
 from sympy import Add, Mul, Expr, expand
 from sympy.physics.secondquant import TensorSymbol
 
+from sym2quantized_sapt.open_shell import (
+    BLOCK_SEPARATOR,
+    SPIN_LABELS,
+    _split_block,
+)
+
 
 def _psi4numpy_indices(index: str) -> str:
     """
@@ -186,9 +192,11 @@ def _get_code_str(
 
 def _is_eri(tensor: TensorSymbol) -> bool:
     """
-    `v` is the intermolecular two-electron integral, the only tensor the
-    density-fitting split applies to. The monomer potentials print as `v_A`
-    and `v_B` and are left alone, as are `s`, `e` and every amplitude.
+    `v` is the two-electron integral, intermolecular or monomer-only, and the
+    only tensor the density-fitting split applies to. The match is on the
+    exact name: the monomer potentials print as `v_A` and `v_B` and are left
+    alone, as are `s`, `e`, every amplitude and the spin blocks `v_ab`, ...
+    that `spin_integration_uhf` produces.
     """
     return str(tensor.symbol) == "v"
 
@@ -214,10 +222,11 @@ def _check_eri_indices(tensor: TensorSymbol) -> None:
     `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, so the split pairs slot 0 of the lower
     indices with slot 0 of the upper ones, and likewise for slot 1. That is
     the right factorization only for a `v` carrying two upper and two lower
-    indices ordered monomer A first - the order `get_V_operator` builds. A
-    `v` ordered any other way denotes a different integral, and pairing it
-    positionally would silently hand back three-index arrays straddling both
-    monomers.
+    indices whose slot pairs each sit on one monomer: the intermolecular `v`
+    `get_V_operator` builds (pair 0 on A, pair 1 on B) or a monomer-only `v`
+    (both pairs on the same monomer). A `v` whose pair straddles A and B
+    denotes a different integral, and pairing it positionally would silently
+    hand back three-index arrays straddling both monomers.
 
     Indices without a monomer assumption are not second-guessed: a plain
     ERI keeps the positional pairing.
@@ -262,8 +271,9 @@ def _variable_name(tensor: TensorSymbol, density_fitting: bool = False):
 
     Under `density_fitting` an ERI is never stored as a four-index array:
     `v^{a b}_{i j}` becomes the pair of three-index arrays `Qar`, `Qbs`, one
-    per monomer. Hence the tuple return - every other tensor yields a
-    one-element tuple.
+    per slot pair - one per monomer for the intermolecular ERI, both on the
+    same monomer for a monomer-only one. Hence the tuple return - every
+    other tensor yields a one-element tuple.
     """
     if density_fitting and _is_eri(tensor):
         _check_eri_indices(tensor)
@@ -411,13 +421,14 @@ def generate_einsum(
         pretty_indices (bool): name the indices after the fixed table in
             `_pretty_indices_names` instead of renaming every subscripted
             index to an unused letter
-        density_fitting (bool): factorize every intermolecular two-electron
-            integral `v^{p r}_{q s} = (p q | r s)` into
-            `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the two three-index
-            arrays `Qqp`, `Qsr` instead of the four-index `v_qspr`. Each ERI
-            of a term is given an auxiliary index of its own. No other
-            tensor is touched - `(v_A)`, `(v_B)`, `s`, `e` and the
-            amplitudes are emitted as usual.
+        density_fitting (bool): factorize every two-electron integral
+            `v^{p r}_{q s} = (p q | r s)`, intermolecular or monomer-only,
+            into `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the two
+            three-index arrays `Qqp`, `Qsr` instead of the four-index
+            `v_qspr`. Each ERI of a term is given an auxiliary index of its
+            own. No other tensor is touched - `(v_A)`, `(v_B)`, `s`, `e`,
+            the amplitudes and spin-blocked `v_ab`, ... are emitted as
+            usual.
 
     Returns:
         str: string with numpy code
@@ -459,3 +470,117 @@ def generate_einsum(
 
     # expr is neither Mul, Add nor TensorSymbol:
     return ""
+
+
+def array_table(expr: Expr) -> dict:
+    """Define every array :func:`generate_einsum` emits for ``expr``.
+
+    The generated code references arrays by name only; this returns
+    what each name *is*, axis by axis, so numeric code can build them
+    -- the missing half of code generation for spin-blocked
+    (:func:`open_shell.spin_integration_uhf`) expressions, where
+    the alpha and beta ranges of an axis are different sizes and the
+    block label decides which.
+
+    Returns ``{array_name: {"base": tensor symbol without the block
+    label, "spin_block": label or "", "axes": [...]}}`` with one axes
+    entry per array dimension, in the array's storage order (lower
+    indices first, then upper, matching :func:`generate_einsum`):
+    ``{"role": "l"/"u", "space": "o"/"v"/"g", "monomer": "A"/"B"/"",
+    "spin": one label character or ""}``.  The spin of an axis is the
+    block label of its slot pair -- pair ``k`` couples lower axis ``k``
+    with upper axis ``k``, one particle/hole line through the tensor.
+    A tensor that is not a graph vertex (the resolvent denominator) has
+    no lines through it and is labelled per index instead: ``e_ab_ba`` gives upper axes spins
+    ``a, b`` and lower axes ``b, a``, with ``spin_block`` ``"ab_ba"``.
+
+    Raises ``ValueError`` if one name would need two different
+    definitions (it cannot happen for expressions produced by this
+    package's pipeline; a hand-built collision should fail loudly).
+    """
+
+    def _axis_facts(index):
+        assumptions = index.assumptions0
+
+        if assumptions.get("below_fermi"):
+            space = "o"
+        elif assumptions.get("above_fermi"):
+            space = "v"
+        else:
+            space = "g"
+
+        if assumptions.get("is_molA"):
+            monomer = "A"
+        elif assumptions.get("is_molB"):
+            monomer = "B"
+        else:
+            monomer = ""
+
+        if assumptions.get("is_alpha"):
+            tag = SPIN_LABELS[0]
+        elif assumptions.get("is_beta"):
+            tag = SPIN_LABELS[1]
+        else:
+            tag = ""
+
+        return space, monomer, tag
+
+    table = {}
+    terms = expr.args if isinstance(expr, Add) else [expr]
+    for term in terms:
+        factors = term.args if isinstance(term, Mul) else [term]
+
+        for tensor in factors:
+            if not isinstance(tensor, TensorSymbol):
+                continue
+
+            name = _variable_name(tensor)[0]  # tuple unpacking
+            symbol = str(tensor.symbol)
+            lower, upper = list(tensor.lower), list(tensor.upper)
+
+            split = _split_block(tensor)
+            if split is None:
+                base, suffix = symbol, ""
+                block_spins = [""] * (len(lower) + len(upper))
+            else:
+                base, upper_spins, lower_spins = split
+                suffix = symbol[len(base) + len(BLOCK_SEPARATOR) :]
+                block_spins = list(lower_spins) + list(upper_spins)
+
+            axes = []
+            for position, index in enumerate(lower + upper):
+                role = "l" if position < len(lower) else "u"
+                space, monomer, tag = _axis_facts(index)
+                block = block_spins[position]
+
+                if tag and block and tag != block:
+                    raise ValueError(
+                        f"tensor {symbol}: axis {position} is tagged "
+                        f"spin {tag!r} but the block label says {block!r}."
+                    )
+
+                spin = tag or block
+                axes.append(
+                    {
+                        "role": role,
+                        "space": space,
+                        "monomer": monomer,
+                        "spin": spin,
+                    }
+                )
+
+            definition = {
+                "base": base,
+                "spin_block": suffix,
+                "axes": axes,
+            }
+
+            if name in table and table[name] != definition:
+                raise ValueError(
+                    f"array {name} would need two definitions:\n"
+                    f"  {table[name]}\n  {definition}"
+                )
+
+            table[name] = definition
+
+    return table

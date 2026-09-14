@@ -3,35 +3,65 @@ from sympy.core import Expr
 from sympy.physics.secondquant import TensorSymbol
 
 
+def _loop_partition(upper, lower):
+    """The Goldstone loops of a term, as a partition of slot positions.
+
+    Position ``i`` is the i-th ``(upper, lower)`` slot pair of the
+    concatenated tensor lists (both lists are built per tensor in slot
+    order, so a position identifies one tensor's k-th pair -- one
+    particle/hole line passing through that tensor).  Two positions
+    join a loop when one's upper index is the other's lower index.
+
+    Spin is constant along a loop, which is what makes this partition
+    the unit of spin bookkeeping: RHF sums each loop's spin to a factor
+    2 (:func:`spin_integration`); the unrestricted counterpart in
+    :mod:`sym2quantized_sapt.open_shell` enumerates it instead.
+    """
+    n = len(upper)
+    graph = [[0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if upper[i] == lower[j]:
+                graph[i][j] = 1
+                graph[j][i] = 1
+
+    visited = [False] * n
+    loops = []
+
+    def _collect(i, members):
+        visited[i] = True
+        members.append(i)
+        for j in range(n):
+            if graph[i][j] and not visited[j]:
+                _collect(j, members)
+
+    for i in range(n):
+        if not visited[i]:
+            members = []
+            _collect(i, members)
+            loops.append(tuple(members))
+
+    return loops
+
+
+def _is_graph_vertex(tensor) -> bool:
+    """Whether ``tensor`` is a vertex of the term's Goldstone graph,
+    i.e. whether loop counting traces its slot pairs as lines.
+
+    False for tensors built with ``is_graph_vertex=False``, such as the
+    resolvent denominator.  A plain SymPy ``TensorSymbol`` has no such
+    flag and is always a vertex.
+    """
+    return getattr(tensor, "is_graph_vertex", True)
+
+
 def _count_loops(upper: Expr, lower: Expr) -> int:
     """
     Helper function for spin integration.
 
     Returns number of loops in a corresponding Goldstone diagram.
     """
-
-    l = 0
-    N = len(upper)
-    visited = [0] * N
-    graph = [[0] * N for i in range(N)]
-    for i in range(N):
-        for j in range(N):
-            if upper[i] == lower[j]:
-                graph[i][j] = 1
-                graph[j][i] = 1
-
-    def _DFS(i):
-        visited[i] = 1
-        for j in range(N):
-            if graph[i][j] and not visited[j]:
-                _DFS(j)
-
-    for i in range(N):
-        if not visited[i]:
-            _DFS(i)
-            l += 1
-
-    return l
+    return len(_loop_partition(upper, lower))
 
 
 def spin_integration(expr: Expr) -> Expr:
@@ -49,7 +79,7 @@ def spin_integration(expr: Expr) -> Expr:
         upper = []
         lower = []
         for elem in expr.args:
-            if isinstance(elem, TensorSymbol):
+            if isinstance(elem, TensorSymbol) and _is_graph_vertex(elem):
                 upper += [index for index in elem.upper]
                 lower += [index for index in elem.lower]
 
@@ -58,6 +88,9 @@ def spin_integration(expr: Expr) -> Expr:
         return Mul(2 ** (l), expr)
 
     elif isinstance(expr, TensorSymbol):
+        if not _is_graph_vertex(expr):
+            return expr
+
         upper = expr.upper
         lower = expr.lower
 

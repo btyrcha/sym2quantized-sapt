@@ -18,6 +18,11 @@ from sympy import (
 from sympy import expand as sy_expand
 from sympy.core.traversal import preorder_traversal
 
+from sym2quantized_sapt.open_shell import (
+    opposite_spins,
+    shared_spin_tag,
+)
+
 from .operators import (
     AnnihilateFermion_A,
     AnnihilateFermion_B,
@@ -80,9 +85,16 @@ def contraction_double_vac(X, Y):
     """
     Calculates contraction for operators corresponding
     to either molecule A or molecule B.
+
+    Indices tagged with opposite spins (``is_alpha`` / ``is_beta``)
+    never contract; untagged indices contract with anything, as
+    before.
     """
 
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
+        if opposite_spins(X.state, Y.state):
+            return S.Zero
+
         if isinstance(X, AnnihilateFermion_A) and isinstance(
             Y, CreateFermion_A
         ):
@@ -96,7 +108,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("a", is_molA=True, above_fermi=True)
+                Y.state,
+                Dummy(
+                    "a",
+                    is_molA=True,
+                    above_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, CreateFermion_A) and isinstance(
@@ -112,7 +130,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("i", is_molA=True, below_fermi=True)
+                Y.state,
+                Dummy(
+                    "i",
+                    is_molA=True,
+                    below_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, AnnihilateFermion_B) and isinstance(
@@ -128,7 +152,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("b", is_molB=True, above_fermi=True)
+                Y.state,
+                Dummy(
+                    "b",
+                    is_molB=True,
+                    above_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, CreateFermion_B) and isinstance(
@@ -144,7 +174,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("j", is_molB=True, below_fermi=True)
+                Y.state,
+                Dummy(
+                    "j",
+                    is_molB=True,
+                    below_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         else:
