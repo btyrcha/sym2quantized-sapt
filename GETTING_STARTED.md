@@ -28,35 +28,7 @@ Two constraints worth knowing before they surprise you:
 
 Python 3.8 is the reference interpreter (CI); 3.9–3.12 also work.
 
-## 2. Which branch
-
-The features live on separate branches.  Pick by what you need:
-
-| branch | gives you |
-|---|---|
-| `main` | the core: double-vacuum Wick, RHF spin integration, einsum generation |
-| `feature/uhf-spin-summation` | **open shell**: spin tags, `spin_integration_uhf`, `rhf_collapse`, `code_generator.array_table` |
-| `feature/term-graphs` | terms as tensor-network graphs; the derivation registry |
-| `feature/density_fitting` | density-fitted emission for the intermolecular `v` |
-| `feature/density_fitting_w` | the above, extended to the intramonomer `w` |
-
-Merge status, measured rather than assumed:
-
-* `feature/term-graphs` + `feature/uhf-spin-summation` merge with
-  **zero conflicts** — they touch nearly disjoint files.  That
-  combination is a safe base for open-shell work today.
-* Adding a density-fitting branch shows no *textual* conflicts either,
-  but do not trust that: the DF lineage carries two deliberate API
-  breaks — operator aliases renamed `a, ad, b, bd` → `A, Ad, B, Bd`,
-  and `DoubleVacuumTensorSymbol.upper/lower/symbol` changed from
-  methods to properties.  A merged tree imports fine and then fails in
-  every derivation script.  Agree on one convention before merging
-  rather than shimming it per project.
-
-`docs/notes/changes-vs-origin.md` describes what each non-upstream
-branch changed and why.
-
-## 3. The shape of a derivation
+## 2. The shape of a derivation
 
 Every script follows the same pipeline:
 
@@ -77,7 +49,7 @@ by fermion operators; `sapt_utils` has ready-made builders
 (`get_V_operator`, `get_P2_operator`, `get_R_nm`, …).
 `examples/sapt_pol20.py` is the canonical end-to-end demonstration.
 
-## 4. Conventions that bite
+## 3. Conventions that bite
 
 Each of these has cost real debugging time — several of them more than
 once, in more than one project.  They are cheap to respect and
@@ -124,7 +96,7 @@ expensive to rediscover.
    psi4numpy alphabet collapse onto each other.  Pinned as an `xfail`
    in `tests/test_code_generator.py`.
 
-## 5. Open shell
+## 4. Open shell
 
 Two routes, and choosing wrongly is a documented trap.
 
@@ -150,7 +122,7 @@ and `docs/notes/uhf-spin-summation.md`.
 `spin_integration` exactly.  Use it — but see §7 on what it can and
 cannot prove.
 
-## 6. From symbols to numbers
+## 5. From symbols to numbers
 
 `generate_einsum` emits code that references arrays *by name only*.
 `code_generator.array_table(expr)` closes that gap: it returns, for
@@ -159,19 +131,7 @@ role (upper/lower), space (occupied/virtual/general), monomer, and
 spin.  Numeric code can then build each array mechanically, which is
 what makes a derivation reproducible without hand-transcription.
 
-That table is also the key to density fitting **without** the DF
-branches: because both members of a fitted index pair always share
-monomer and spin, an ERI operand in an emitted term can be split into
-its two three-index factors by the consuming driver, indexed by
-`(monomer, spin, space_row, space_col)`.
-
-The `derivation_registry` module (on `feature/term-graphs`) stores a
-finished derivation as JSON — every term with its coefficient, its
-tensor-network graph, its generated code and a canonical topology key
-— so later runs diff against it term by term instead of against a
-transcript.
-
-## 7. Validation discipline
+## 6. Validation discipline
 
 The single most important lesson from using this package in anger:
 
@@ -192,7 +152,7 @@ the integrals, which tests the factorisation logic with the fitting
 error removed.  Record what was checked against what, and treat a
 derivation without a numerical stamp as a hypothesis.
 
-## 8. Worked examples
+## 7. Worked examples
 
 In this repository: `examples/sapt_pol20.py` (canonical),
 `examples/sapt_exch10.py` and `examples/sapt_exch-ind200.py`
@@ -206,4 +166,4 @@ open-shell MP2/MP3, SAPT dispersion and exchange-dispersion, and a
 coupled-pair dispersion method, each with its psi4 gate.  Nothing in
 this package assumes that theory; the scripts are useful mainly as
 worked examples of the pipeline, the conventions above, and the
-symbol-to-number bridge of §6.
+symbol-to-number bridge of §5.
