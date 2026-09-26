@@ -64,6 +64,11 @@ Everything keys off SymPy `Dummy` symbols carrying assumptions. Two orthogonal a
 Canonical dummy names produced by `substitute_dummies_double_vac`:
 `a`=particle-A, `i`=hole-A, `p`=general-A; `b`=particle-B, `j`=hole-B, `q`=general-B (with
 `_1, _2, …` suffixes). Create indices with e.g. `symbols("a", is_molA=True, above_fermi=True, cls=Dummy)`.
+Spin-tagged indices (`is_alpha` / `is_beta`) are renamed only within their spin, and the spins of
+one kind share the counter (α holes `i`, `i_1`; β holes `i_2`, `i_3`). `.name` must never repeat
+across spins, because `generate_einsum` identifies indices by name; the bar over a β index
+(`\bar{i}_2`, `open_shell.index_latex`) is added in LaTeX output only.
+→ `docs/notes/spin-tag-renaming.md`
 
 `substitute_dummies_double_vac(expr, pretty_indices={...})` overrides those names. **That option is
 for `latex()` output only — never feed a renamed expression to `generate_einsum`.** Code generation
@@ -149,7 +154,8 @@ Nothing raises. Dividing by it (`v / e`) is safe, since a `Pow` is never traced.
     non-vertex tensors per index (`e_ab_ba`). → `docs/notes/uhf-spin-summation.md`
 - `open_shell.py` — **spin-tag UHF route**: `opposite_spins`, `shared_spin_tag`, which
   `double_fermi_vac` consults so contractions and deltas vanish across opposite spins and a
-  delta's surviving index keeps the tag (`_merge_delta_indices` stays in the core). The two
+  delta's surviving index keeps the tag (`_merge_delta_indices` stays in the core), and
+  `index_latex` (β index printed with a bar), used by the tensor and operator printers. The two
   UHF routes are alternatives, share no code, and agree on UMP2.
 - `sinfinitizer.py` — `sinfinitizer`: expands overlap integrals (S^∞), wiring tensors together in
   all ways and assigning signs from loop/hole-line parity.

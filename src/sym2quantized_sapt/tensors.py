@@ -2,6 +2,8 @@ from functools import cmp_to_key
 from sympy import Basic, Tuple, sympify
 from sympy.physics.secondquant import TensorSymbol
 
+from sym2quantized_sapt.open_shell import index_latex
+
 
 class DoubleVacuumTensorSymbol(TensorSymbol):
     """
@@ -79,10 +81,14 @@ class DoubleVacuumTensorSymbol(TensorSymbol):
         latex_str = "%s" % (self.symbol)
 
         if len(self.upper):
-            latex_str += "^{%s}" % "".join([i.name for i in self.upper])
+            latex_str += "^{%s}" % "".join(
+                [index_latex(i) for i in self.upper]
+            )
 
         if len(self.lower):
-            latex_str += "_{%s}" % "".join([i.name for i in self.lower])
+            latex_str += "_{%s}" % "".join(
+                [index_latex(i) for i in self.lower]
+            )
 
         return latex_str
 

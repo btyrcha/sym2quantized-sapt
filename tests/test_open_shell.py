@@ -2,13 +2,16 @@
 The spin-tag route (``open_shell``): ``is_alpha`` / ``is_beta`` on the
 indices, consulted by Wick's theorem. These tests are what the route
 guarantees: nothing contracts or survives a delta across opposite spins,
-and no index that stands in for a tagged one loses the tag.
+no index that stands in for a tagged one loses the tag (renaming
+included), and beta indices print with a bar.
 """
 
-from sympy import Dummy, KroneckerDelta, symbols, latex
+from sympy import Add, Dummy, KroneckerDelta, symbols, latex
 
+from sym2quantized_sapt.code_generator import generate_einsum
 from sym2quantized_sapt.double_fermi_vac import (
     evaluate_deltas_double_vac,
+    substitute_dummies_double_vac,
     wicks_double_vac,
 )
 from sym2quantized_sapt.operators import A, Ad
@@ -136,3 +139,72 @@ def test_delta_with_free_untagged_survivor_is_kept():
     expr = Ad(p_alpha) * KroneckerDelta(p_alpha, i)
 
     assert evaluate_deltas_double_vac(expr) == expr
+
+
+def _tagged(name, spin, **assumptions):
+    tag = {"is_alpha": True} if spin == "a" else {"is_beta": True}
+    return symbols(name, is_molA=True, cls=Dummy, **tag, **assumptions)
+
+
+def _slot_spins(tensor):
+    return "".join(
+        "a" if index.assumptions0.get("is_alpha") else "b"
+        for index in (*tensor.upper, *tensor.lower)
+    )
+
+
+def test_renaming_keeps_every_index_in_its_spin():
+    # an alpha-only and a beta-only term: both draw the first hole and the
+    # first particle from the renaming pools, so a pool shared by the two
+    # spins hands one of the terms the wrong spin - in every process
+    x = DoubleVacuumTensorSymbol(
+        "x_a",
+        (_tagged("i", "a", below_fermi=True),),
+        (_tagged("a", "a", above_fermi=True),),
+    )
+    y = DoubleVacuumTensorSymbol(
+        "y_b",
+        (_tagged("i", "b", below_fermi=True),),
+        (_tagged("a", "b", above_fermi=True),),
+    )
+
+    result = substitute_dummies_double_vac(x + y)
+
+    spins = {str(t.symbol): _slot_spins(t) for t in Add.make_args(result)}
+
+    assert spins == {"x_a": "aa", "y_b": "bb"}
+
+
+def test_alpha_and_beta_indices_are_renamed_apart():
+    # generate_einsum identifies indices by name, so an alpha and a beta
+    # hole must not both be renamed to `i`: that would give the same
+    # einsum letter to two different indices
+    i_alpha = _tagged("i", "a", below_fermi=True)
+    i_beta = _tagged("i", "b", below_fermi=True)
+    a_alpha = _tagged("a", "a", above_fermi=True)
+    a_beta = _tagged("a", "b", above_fermi=True)
+
+    t = DoubleVacuumTensorSymbol("t_ab", (i_alpha, i_beta), (a_alpha, a_beta))
+    x = DoubleVacuumTensorSymbol("x_ab", (a_alpha, a_beta), (i_alpha, i_beta))
+
+    result = substitute_dummies_double_vac(t * x)
+
+    assert [_slot_spins(f) for f in result.args] == ["abab", "abab"]
+    assert len({index.name for index in result.atoms(Dummy)}) == 4
+    assert (
+        generate_einsum(result).strip()
+        == '+np.einsum("rcad,adrc", t_ab_rraa, x_ab_aarr)'
+    )
+
+
+def test_beta_indices_print_with_a_bar():
+    i_alpha = _tagged("i", "a", below_fermi=True)
+    i_beta = _tagged("i_1", "b", below_fermi=True)
+    a_alpha = _tagged("a", "a", above_fermi=True)
+    a_beta = _tagged("a_1", "b", above_fermi=True)
+
+    t = DoubleVacuumTensorSymbol("t_ab", (i_alpha, i_beta), (a_alpha, a_beta))
+
+    assert latex(t) == r"t_ab^{i\bar{i}_1}_{a\bar{a}_1}"
+    assert latex(Ad(i_beta)) == r"a^\dagger_{\bar{i}_1}"
+    assert latex(A(a_alpha)) == r"a_{a}"

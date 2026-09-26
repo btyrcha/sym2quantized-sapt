@@ -113,6 +113,8 @@ across opposite tags and Wick's theorem does the bookkeeping exactly.
 Write each operator as its spin sectors and give each resolvent sector
 its own normalisation — `1/(n!)**2` per group of same-spin
 (indistinguishable) pairs, `1` for distinguishable pairs.
+Index renaming (`substitute_dummies_double_vac`) keeps the spins apart,
+and β indices print with a bar: `\bar{i}_2`.
 
 **Per-loop summation** (`spin_integration_uhf`) is the cheap route:
 spin is constant along a Goldstone loop, so each term becomes

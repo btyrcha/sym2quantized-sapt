@@ -10,6 +10,9 @@ the spin bookkeeping exactly, with no spin-summation rule at all.
 Write each operator as its spin sectors and give each resolvent sector
 its own normalisation.
 
+Index renaming keeps the spins apart too, and :func:`index_latex`
+prints a beta index with a bar over it.
+
 The other open-shell route derives with spatial indices and sums over
 spin per Goldstone loop afterwards:
 :mod:`sym2quantized_sapt.spin_integrator.uhf`.  The two routes are
@@ -17,6 +20,7 @@ alternatives and share no code.
 """
 
 __all__ = [
+    "index_latex",
     "opposite_spins",
     "shared_spin_tag",
 ]
@@ -54,3 +58,22 @@ def opposite_spins(x, y) -> bool:
         (ax.get("is_alpha") and ay.get("is_beta"))
         or (ax.get("is_beta") and ay.get("is_alpha"))
     )
+
+
+def index_latex(index) -> str:
+    """The LaTeX of an index: its name, with a bar over a beta one.
+
+    ``i_2`` tagged ``is_beta`` prints as ``\\bar{i}_2``; alpha and
+    untagged indices print as their name.  The bar is added here, at
+    print time, and never stored in ``index.name``: code generation
+    identifies indices by name, so alpha and beta indices get distinct
+    names from :func:`double_fermi_vac.substitute_dummies_double_vac`
+    rather than the same name with different marks."""
+    name = index.name
+
+    if not index.assumptions0.get("is_beta"):
+        return name
+
+    base, separator, subscript = name.partition("_")
+
+    return "\\bar{%s}%s%s" % (base, separator, subscript)
