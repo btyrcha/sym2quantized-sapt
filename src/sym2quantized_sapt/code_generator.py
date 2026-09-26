@@ -601,14 +601,12 @@ def array_table(expr: Expr, density_fitting: bool = False) -> dict:
         else:
             space = "g"
 
-        if assumptions.get("is_molA"):
-            monomer = "A"
-        elif assumptions.get("is_molB"):
-            monomer = "B"
-        else:
-            monomer = ""
-
-        return {"role": role, "space": space, "monomer": monomer, "spin": spin}
+        return {
+            "role": role,
+            "space": space,
+            "monomer": _monomer_of(index),
+            "spin": spin,
+        }
 
     def _spins_and_labels(tensor):
         """(base, spin_block, one spin per axis in storage order)"""
