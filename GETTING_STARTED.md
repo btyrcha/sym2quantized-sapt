@@ -1,9 +1,8 @@
 # Getting started
 
 How to begin a new derivation project with `sym2quantized-sapt`: the
-environment, which branch to start from, the shape of a derivation
-script, and — most importantly — the conventions that cost real
-debugging time when they are violated.
+environment, the shape of a derivation script, and — most importantly —
+the conventions that cost real debugging time when they are violated.
 
 `README.md` is the short introduction; `CLAUDE.md` is the module map
 and API detail.  This file is the practical on-ramp.
@@ -40,7 +39,7 @@ expr = wicks_double_vac(expr.expand(),          # contract
 expr = evaluate_deltas_double_vac(expr)         # resolve deltas
 expr = substitute_dummies_double_vac(expr)      # canonicalise
 expr = get_only_linked(expr)                    # drop disconnected
-expr = spin_integration(expr)                   # RHF only; see §5
+expr = spin_integration(expr)                   # RHF only; see §4
 print(generate_einsum(expr))                    # emit
 ```
 
@@ -168,8 +167,7 @@ derivation without a numerical stamp as a hypothesis.
 In this repository: `examples/sapt_pol20.py` (canonical),
 `examples/sapt_exch10.py` and `examples/sapt_exch-ind200.py`
 (exchange machinery), `examples/ump2_uhf.py` (UMP2 by both
-open-shell routes, next to conventional UMP2),
-`examples/derivation_registry_demo.py` (registry round trip).
+open-shell routes, next to conventional UMP2).
 
 A downstream application drove most of the above and keeps a larger
 set of derivation/validation script pairs — a dispersion code with
