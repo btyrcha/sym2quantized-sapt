@@ -199,6 +199,9 @@ def evaluate_deltas_double_vac(expr):
     in KronecerDelta should have an assumptions:
     - is_molA=True if this index applies only to part A of the complex,
     - is_molB=True if this index applies only to part B of the complex.
+
+    A delta between indices tagged with opposite spins (``is_alpha`` /
+    ``is_beta``) is zero, as is a cross-monomer one.
     """
 
     if isinstance(expr, Add):
@@ -217,6 +220,10 @@ def evaluate_deltas_double_vac(expr):
                 deltas.append(elem)
 
         for d in deltas:
+            # Indicies tagged with opposite spins. Delta is zero.
+            if opposite_spins(d.killable_index, d.preferred_index):
+                return S.Zero
+
             # Now we have to check if killable and preferred apply
             # to the same part of the complex.
             killable_molA = d.killable_index.assumptions0.get("is_molA")

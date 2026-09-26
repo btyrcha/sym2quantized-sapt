@@ -112,3 +112,48 @@ def test_can_evaluate_no_changes():
     tested_expr = latex(expr)
 
     assert reference_latex == tested_expr
+
+
+def test_can_evaluate_opposite_spin_delta():
+    """
+    Test checking if opposite spin delta is evaluated to zero.
+    """
+    reference_latex = r"0"
+
+    i_alpha = symbols(
+        "i", is_molA=True, below_fermi=True, is_alpha=True, cls=Dummy
+    )
+    i_beta = symbols(
+        "i", is_molA=True, below_fermi=True, is_beta=True, cls=Dummy
+    )
+
+    expr = Ad(i_alpha) * A(i_beta) * KroneckerDelta(i_alpha, i_beta)
+
+    expr = evaluate_deltas_double_vac(expr)
+
+    tested_expr = latex(expr)
+
+    assert reference_latex == tested_expr
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="the index that survives a delta is picked by Fermi-level "
+    "information alone, so the alpha-tagged general `p` is replaced by the "
+    "untagged hole `i` and the spin tag is dropped: the term then sums over "
+    "both spins. Through an untagged index this also hides an opposite-spin "
+    "pair from the zero check: d(p_a, q) d(q, r_b) comes back nonzero",
+)
+def test_delta_survivor_inherits_the_spin_tag():
+    p_alpha = symbols("p", is_molA=True, is_alpha=True, cls=Dummy)
+    i = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
+
+    expr = Ad(p_alpha) * A(i) * KroneckerDelta(p_alpha, i)
+
+    result = evaluate_deltas_double_vac(expr)
+
+    tags = [
+        index.assumptions0.get("is_alpha") for index in result.atoms(Dummy)
+    ]
+
+    assert tags and all(tags)
