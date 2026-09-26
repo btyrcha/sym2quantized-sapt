@@ -1,7 +1,8 @@
 # UHF spin summation
 
-(Implemented in `sym2quantized_sapt/open_shell.py`; it shares the loop
-counter in `spin_integrator.py` with the RHF path.)
+(Implemented in `sym2quantized_sapt/spin_integrator/uhf.py`; it shares
+the loop counter in `spin_integrator/__init__.py` with the RHF path.
+The spin-tag alternative is `open_shell.py`.)
 
 `spin_integration_uhf` extends the package to an unrestricted
 reference.  Design and the reasoning behind it.

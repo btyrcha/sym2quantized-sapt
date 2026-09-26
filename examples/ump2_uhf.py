@@ -34,7 +34,7 @@ from sympy.physics.secondquant import Dagger
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
 from sym2quantized_sapt.operators import A, Ad
 from sym2quantized_sapt.sapt_utils import get_R_nm
-from sym2quantized_sapt.open_shell import spin_integration_uhf
+from sym2quantized_sapt.spin_integrator.uhf import spin_integration_uhf
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol as DVT
 
 SPIN = {"a": {"is_alpha": True}, "b": {"is_beta": True}}

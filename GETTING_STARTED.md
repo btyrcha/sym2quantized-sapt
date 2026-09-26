@@ -101,8 +101,11 @@ expensive to rediscover.
 Two routes that agree on UMP2; per-loop is cheaper, spin tags are more
 general.
 
-Both routes live in `sym2quantized_sapt/open_shell.py`; the restricted
-path in `spin_integrator.py` is untouched by either.
+The routes live in separate files and share no code.  Spin tags are
+`sym2quantized_sapt/open_shell.py`, consulted by Wick's theorem in
+`double_fermi_vac.py`.  Per-loop summation is
+`sym2quantized_sapt/spin_integrator/uhf.py`, next to the restricted
+`spin_integration` whose loop tracing it reuses.
 
 **Spin tags** (`is_alpha` / `is_beta`) are the general route: they are
 the monomer-tag mechanism applied to spin, so contractions vanish

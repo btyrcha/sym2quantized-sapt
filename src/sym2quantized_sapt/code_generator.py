@@ -3,7 +3,7 @@ import re
 from sympy import Add, Mul, Expr, expand
 from sympy.physics.secondquant import TensorSymbol
 
-from sym2quantized_sapt.open_shell import (
+from sym2quantized_sapt.spin_integrator.uhf import (
     BLOCK_SEPARATOR,
     SPIN_LABELS,
     _split_block,
@@ -478,7 +478,7 @@ def array_table(expr: Expr) -> dict:
     The generated code references arrays by name only; this returns
     what each name *is*, axis by axis, so numeric code can build them
     -- the missing half of code generation for spin-blocked
-    (:func:`open_shell.spin_integration_uhf`) expressions, where
+    (:func:`spin_integrator.uhf.spin_integration_uhf`) expressions, where
     the alpha and beta ranges of an axis are different sizes and the
     block label decides which.
 

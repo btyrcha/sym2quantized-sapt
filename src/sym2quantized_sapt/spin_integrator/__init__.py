@@ -1,3 +1,14 @@
+"""Spin integration: summing a spin-orbital expression over spin.
+
+This module is the restricted (RHF) route, :func:`spin_integration`,
+and the Goldstone-loop tracing it shares with the unrestricted one.
+
+The per-loop UHF route lives in :mod:`sym2quantized_sapt.spin_integrator.uhf`
+and enumerates the same loops instead of counting them.  The other
+open-shell route, spin tags on the indices, does no summation at all
+and lives in :mod:`sym2quantized_sapt.open_shell`.
+"""
+
 from sympy import Add, Mul
 from sympy.core import Expr
 from sympy.physics.secondquant import TensorSymbol
@@ -15,7 +26,7 @@ def _loop_partition(upper, lower):
     Spin is constant along a loop, which is what makes this partition
     the unit of spin bookkeeping: RHF sums each loop's spin to a factor
     2 (:func:`spin_integration`); the unrestricted counterpart in
-    :mod:`sym2quantized_sapt.open_shell` enumerates it instead.
+    :mod:`sym2quantized_sapt.spin_integrator.uhf` enumerates it instead.
     """
     n = len(upper)
     graph = [[0] * n for _ in range(n)]

@@ -1,7 +1,8 @@
 # Coverage gaps
 
 Total is 93% against `fail_under = 83` in `.coveragerc`. At 100%:
-`code_generator.py`, `sapt_utils.py`, `diagrams.py`, `spin_integrator.py`.
+`code_generator.py`, `sapt_utils.py`, `diagrams.py`,
+`spin_integrator/__init__.py`.
 `tensors.py` is at 97%, partial branches only, and is not worth chasing.
 
 Regenerate before acting on this list; line numbers go stale.
