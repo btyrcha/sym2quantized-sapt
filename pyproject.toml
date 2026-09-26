@@ -7,6 +7,9 @@ line-length = 79
 target-version = ['py38', 'py39', 'py310', 'py311']
 
 [tool.pytest.ini_options]
+# import the package from this checkout, whatever is installed: an editable
+# install may point at another checkout, a plain one may be stale
+pythonpath = ["src"]
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]

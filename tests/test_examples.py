@@ -74,7 +74,9 @@ def test_run_example(example_file: pathlib.Path, tmp_path: pathlib.Path):
     # run as a subprocess call, importing the package from THIS
     # checkout: the editable install may point at another checkout
     # (e.g. main while a feature branch is under test), which would
-    # silently run the examples against the wrong code
+    # silently run the examples against the wrong code.  In-process
+    # tests get the same from `pythonpath` in pyproject.toml, but a
+    # subprocess does not inherit pytest's sys.path
     environment = dict(os.environ)
     checkout_src = str(pathlib.Path(__file__).parents[1] / "src")
     environment["PYTHONPATH"] = os.pathsep.join(

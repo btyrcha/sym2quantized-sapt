@@ -32,6 +32,9 @@ python3 -m pytest ./tests/ --slow
 
 # Single test
 python3 -m pytest tests/test_sapt_disp.py::test_can_evaluate_sapt_disp_20_energy
+# pytest imports the package from this checkout's src/ (`pythonpath` in
+# pyproject.toml), whatever is installed; scripts run directly need the
+# editable install of this checkout, or PYTHONPATH=src
 
 # Run a derivation script directly
 python3 examples/sapt_pol20.py
