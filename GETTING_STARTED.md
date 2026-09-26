@@ -98,37 +98,30 @@ expensive to rediscover.
 
 ## 4. Open shell
 
-Two routes that agree on UMP2; per-loop is cheaper, spin tags are more
-general.
+**Spin tags are the supported route.** They live in
+`sym2quantized_sapt/open_shell.py` and are consulted by Wick's theorem
+in `double_fermi_vac.py`.
 
-The routes live in separate files and share no code.  Spin tags are
-`sym2quantized_sapt/open_shell.py`, consulted by Wick's theorem in
-`double_fermi_vac.py`.  Per-loop summation is
-`sym2quantized_sapt/spin_integrator/uhf.py`, next to the restricted
-`spin_integration` whose loop tracing it reuses.
-
-**Spin tags** (`is_alpha` / `is_beta`) are the general route: they are
-the monomer-tag mechanism applied to spin, so contractions vanish
-across opposite tags and Wick's theorem does the bookkeeping exactly.
+**Spin tags** (`is_alpha` / `is_beta`) are the monomer-tag mechanism
+applied to spin, so contractions vanish across opposite tags and Wick's
+theorem does the bookkeeping exactly.
 Write each operator as its spin sectors and give each resolvent sector
 its own normalisation — `1/(n!)**2` per group of same-spin
 (indistinguishable) pairs, `1` for distinguishable pairs.
 Index renaming (`substitute_dummies_double_vac`) keeps the spins apart,
 and β indices print with a bar: `\bar{i}_2`.
 
-**Per-loop summation** (`spin_integration_uhf`) is the cheap route:
-spin is constant along a Goldstone loop, so each term becomes
-`2**loops` spin-blocked copies.  Loops are traced only through graph
-vertices: the resolvent denominator is not one, is built with
-`is_graph_vertex=False`, and gets one spin label per index
-(`e_ab_ba`).  A hand-built denominator multiplied in without that flag
-merges loops — exactly the bug that once halved the opposite-spin MP2
-energy *while passing the RHF-collapse gate*; see
-`docs/notes/uhf-spin-summation.md`.
+A spin-tagged result is already resolved by spin: **do not pass it to
+`spin_integration`**, the RHF step, which would count every loop a
+second time.  Nothing raises yet.
 
-`rhf_collapse` strips the block labels and must reproduce
-`spin_integration` exactly.  Use it — but see §7 on what it can and
-cannot prove.
+**Frozen: per-loop summation.**  `sym2quantized_sapt/spin_integrator/uhf.py`
+(`spin_integration_uhf`, with its consistency gate `rhf_collapse`)
+derives with spatial indices and then turns each term into `2**loops`
+spin-blocked copies.  It agrees with the spin tags on UMP2, but it is a
+proof of concept, not maintained: don't build on it.  Its design, the
+loop-counting bug it exposed, and its known limitations are in
+`docs/notes/uhf-spin-summation.md`.
 
 ## 5. From symbols to numbers
 

@@ -1,5 +1,11 @@
 # UHF spin summation
 
+**Status: frozen proof of concept, not maintained (since 2026-09-26).**
+The supported UHF route is spin tags on the indices (`open_shell.py`;
+`GETTING_STARTED.md` §4, `spin-tag-renaming.md`). This page stays as the
+design record of the per-loop route; its known limitations, listed at
+the end, will not be fixed.
+
 (Implemented in `sym2quantized_sapt/spin_integrator/uhf.py`; it shares
 the loop counter in `spin_integrator/__init__.py` with the RHF path.
 The spin-tag alternative is `open_shell.py`.)
@@ -100,7 +106,7 @@ opposite-spin sector exactly.  `tests/test_spin_integrator.py` pins
 the closed-shell `2A − B`.
 
 Both routes therefore hold for MP-n.  **Spin tags** are the general
-mechanism: indices carry `is_alpha` / `is_beta`, the contraction rule
+mechanism, and the supported route: indices carry `is_alpha` / `is_beta`, the contraction rule
 vanishes across them (the same mechanism as the monomer tags), the
 fluctuation operator enters as its four spin sectors, and each
 resolvent sector gets its own normalisation — `1/(2!)^2` for two
@@ -108,8 +114,8 @@ indistinguishable same-spin pairs, `1` for the distinguishable mixed
 pair.  That route agrees with psi4's conventional UHF-MP2 to ~1e-16
 per spin channel (derivation and numeric check live in the downstream
 application: `derive_ump2_uhf.py` / `run_ump2_uhf_check.py`).
-**Per-loop labels** are the cheap route for spin-free spatial
-expressions.
+**Per-loop labels** were the cheaper route for spin-free spatial
+expressions; the route is now frozen.
 
 ## Open lines, and what is deliberately out of scope
 
@@ -120,3 +126,26 @@ scope here: ROHF / spin adaptation (a different reference structure,
 not a summation rule), and code generation for the blocked tensors —
 `code_generator`'s four-space naming needs a deliberate extension to
 spin-split spaces before `generate_einsum` can emit these terms.
+
+## Known limitations (won't fix)
+
+Recorded when the route was frozen. None raises an error.
+
+- **Spatial input only.** Spin tags already on the indices are ignored:
+  a tagged term is blocked as if it were spatial, so the blocks can
+  contradict the tags (`x_a_b` holding α-tagged indices).
+- **Expanded input only.** Factors of a `Mul` that are not tensors,
+  including `Add` and `Pow`, are treated as coefficients: `(x + z) * y`
+  blocks only `y`, and `x**2 * y` leaves `x` spatial. The spatial
+  `<W R_(2,0) W R_(2,0) W>` contains such `e**2` factors.
+- **Index-less tensors get a trailing separator.** `_blocked` always
+  appends it, so `V_0` becomes the different symbol `V_0_`, and code
+  generation emits `V_0__`.
+- **The block label is a name suffix.** `rhf_collapse` strips a genuine
+  `_a` suffix from a spatial tensor (`u_a` → `u`); multi-character
+  `labels` make it a no-op; blocking twice nests the labels (`x_a_b`).
+- **The `rhf_collapse` gate and `Float` coefficients.** `get_R_nm` and
+  `get_Pn_operator` produce `Float`s, and adding the `2**loops` copies
+  one at a time can round differently from `2**loops * c` (e.g. `1/36`
+  from `get_R_nm(3, 0)`), so the exact gate could report a false
+  failure. Not reproduced.

@@ -3,10 +3,13 @@
 This module is the restricted (RHF) route, :func:`spin_integration`,
 and the Goldstone-loop tracing it shares with the unrestricted one.
 
-The per-loop UHF route lives in :mod:`sym2quantized_sapt.spin_integrator.uhf`
-and enumerates the same loops instead of counting them.  The other
-open-shell route, spin tags on the indices, does no summation at all
-and lives in :mod:`sym2quantized_sapt.open_shell`.
+The per-loop UHF route in :mod:`sym2quantized_sapt.spin_integrator.uhf`
+enumerates the same loops instead of counting them; it is a frozen
+proof of concept, not maintained.  The supported open-shell route, spin
+tags on the indices, does no summation at all and lives in
+:mod:`sym2quantized_sapt.open_shell`.  A spin-tagged expression is
+already resolved by spin and must not be passed to
+:func:`spin_integration`, which would count its loops a second time.
 """
 
 from sympy import Add, Mul
@@ -81,6 +84,10 @@ def spin_integration(expr: Expr) -> Expr:
     the Restricted Hartree-Fock case.
 
     Indices in returned expression refer to orbitals.
+
+    Spin-tagged input (``is_alpha`` / ``is_beta``, the spin-tag route)
+    is already resolved by spin and must not be passed here: each of
+    its loops would be counted twice.  Nothing checks this yet.
     """
 
     if isinstance(expr, Add):

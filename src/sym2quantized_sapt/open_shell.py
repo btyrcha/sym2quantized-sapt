@@ -1,5 +1,7 @@
 """Unrestricted (open-shell) references: spin tags on the indices.
 
+This is the supported UHF route.
+
 ``is_alpha`` / ``is_beta`` on an index is the open-shell analogue of
 the ``is_molA`` / ``is_molB`` monomer tag.  The core consults the two
 predicates here: :func:`double_fermi_vac.contraction_double_vac` so
@@ -13,10 +15,14 @@ its own normalisation.
 Index renaming keeps the spins apart too, and :func:`index_latex`
 prints a beta index with a bar over it.
 
-The other open-shell route derives with spatial indices and sums over
-spin per Goldstone loop afterwards:
-:mod:`sym2quantized_sapt.spin_integrator.uhf`.  The two routes are
-alternatives and share no code.
+A spin-tagged result is already resolved by spin: do not pass it to
+the RHF :func:`sym2quantized_sapt.spin_integrator.spin_integration`,
+which would count its loops a second time.
+
+The per-loop route, :mod:`sym2quantized_sapt.spin_integrator.uhf`
+(derive with spatial indices, then sum over spin per Goldstone loop),
+is a frozen proof of concept, not maintained.  The two routes share no
+code.
 """
 
 __all__ = [

@@ -1,3 +1,10 @@
+"""
+Tests of the per-loop UHF route (``spin_integrator.uhf``), a frozen proof
+of concept that is not maintained. They keep it from breaking silently
+while it lives in the code; they are not a spec for new work, which goes
+through the spin-tag route (``tests/test_open_shell.py``).
+"""
+
 import pytest
 from sympy import Add, Mul, symbols
 

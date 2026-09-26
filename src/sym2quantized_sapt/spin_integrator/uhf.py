@@ -1,5 +1,12 @@
 """Per-loop spin summation for an unrestricted (UHF) reference.
 
+**Frozen proof of concept, not maintained.**  It is kept as a record of
+the per-loop approach, and its tests keep it from breaking silently,
+but it is not developed further and its known limitations will not be
+fixed (listed in ``docs/notes/uhf-spin-summation.md``; among them: the
+input must be spatial, with no spin tags, and expanded).  New UHF work
+uses the spin-tag route, :mod:`sym2quantized_sapt.open_shell`.
+
 Spin is constant along a Goldstone loop, so a spatial term becomes
 ``2**loops`` spin-blocked copies (:func:`spin_integration_uhf`).  Loops
 are traced through graph vertices only, by the same loop partition the
@@ -10,8 +17,9 @@ takes its spins from the loops its indices lie on.
 :func:`rhf_collapse` is the consistency gate for this route; read its
 docstring for what that gate can and cannot prove.
 
-The alternative, spin tags on the indices, resolves spin during Wick's
-theorem and needs no summation step: :mod:`sym2quantized_sapt.open_shell`.
+The supported route, spin tags on the indices, resolves spin during
+Wick's theorem and needs no summation step:
+:mod:`sym2quantized_sapt.open_shell`.
 """
 
 from itertools import product

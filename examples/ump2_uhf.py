@@ -1,6 +1,9 @@
 """
 UMP2 by both open-shell routes, compared with conventional UMP2.
 
+**Spin tags** are the supported route.  The per-loop column is a frozen
+proof of concept, not maintained, and is shown here only for comparison.
+
 **Spin tags** (``is_alpha`` / ``is_beta``) are the open-shell analogue
 of the monomer tags: contractions vanish across them, so Wick's theorem
 does the UHF bookkeeping exactly.  The fluctuation operator enters as
@@ -10,9 +13,9 @@ same-spin (indistinguishable) pairs, 1 for the distinguishable
 alpha+beta pair.  This route also matches psi4's conventional UHF-MP2
 (checked downstream to ~1e-16 per spin channel).
 
-**Per loop**: the energy is derived once with spatial indices and then
-spin-summed with ``spin_integration_uhf``, one spin label per Goldstone
-loop.  Loops run through graph vertices only.  The resolvent
+**Per loop** (frozen proof of concept): the energy is derived once with
+spatial indices and then spin-summed with ``spin_integration_uhf``, one
+spin label per Goldstone loop.  Loops run through graph vertices only.  The resolvent
 denominator ``e`` is not a vertex (``is_graph_vertex=False``), so it
 takes its spins from the loops its indices lie on and is labelled per
 index: ``e_ab_ba``.  When ``e`` was still traced as a vertex, this

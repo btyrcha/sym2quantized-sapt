@@ -86,6 +86,8 @@ this as `xfail`.
 2. `wicks_double_vac(expr, keep_only_fully_contracted=True)` — apply generalized Wick's theorem,
    evaluate deltas, and canonicalize dummies so equivalent terms collapse.
 3. `spin_integration(expr)` — RHF spin integration (multiplies each term by `2**(#loops)`).
+   **Never on a spin-tagged (UHF) expression:** tags already resolve the spin, so every loop
+   would be counted twice, and nothing raises yet.
 4. Output: `latex(expr)` / `utils.format_expr` for formulas, or `code_generator.generate_einsum`
    for runnable `np.einsum` code (uses psi4numpy index naming: a→r, b→s, i→a, j→b, applied by
    `generate_einsum` itself — the expression must still carry the canonical names at this point).
@@ -148,15 +150,18 @@ Nothing raises. Dividing by it (`v / e`) is safe, since a `Pow` is never traced.
   - `__init__.py` — `spin_integration` (RHF) + `_loop_partition` / `_count_loops`
     (Goldstone-diagram loops; the partition is what spin bookkeeping keys off).
     It must not import `.uhf`, which imports these helpers back.
-  - `uhf.py` — **per-loop UHF route**: `spin_integration_uhf` (one spin label per loop,
-    `2**loops` spin-blocked copies), `rhf_collapse` (its consistency gate), block naming
-    (`_blocked` / `_split_block`, `SPIN_LABELS`). Blocks are labelled per slot pair (`t_ab`),
-    non-vertex tensors per index (`e_ab_ba`). → `docs/notes/uhf-spin-summation.md`
-- `open_shell.py` — **spin-tag UHF route**: `opposite_spins`, `shared_spin_tag`, which
-  `double_fermi_vac` consults so contractions and deltas vanish across opposite spins and a
-  delta's surviving index keeps the tag (`_merge_delta_indices` stays in the core), and
-  `index_latex` (β index printed with a bar), used by the tensor and operator printers. The two
-  UHF routes are alternatives, share no code, and agree on UMP2.
+  - `uhf.py` — **per-loop UHF route, a frozen proof of concept: not maintained, don't extend
+    it** (its known limitations are listed as won't-fix in the notes page).
+    `spin_integration_uhf` (one spin label per loop, `2**loops` spin-blocked copies),
+    `rhf_collapse` (its consistency gate), block naming (`_blocked` / `_split_block`,
+    `SPIN_LABELS`). Blocks are labelled per slot pair (`t_ab`), non-vertex tensors per index
+    (`e_ab_ba`). → `docs/notes/uhf-spin-summation.md`
+- `open_shell.py` — **spin-tag UHF route, the supported one**: `opposite_spins`,
+  `shared_spin_tag`, which `double_fermi_vac` consults so contractions and deltas vanish across
+  opposite spins and a delta's surviving index keeps the tag (`_merge_delta_indices` stays in
+  the core), and `index_latex` (β index printed with a bar), used by the tensor and operator
+  printers. New UHF work goes here; it shares no code with the frozen per-loop route (the two
+  agree on UMP2).
 - `sinfinitizer.py` — `sinfinitizer`: expands overlap integrals (S^∞), wiring tensors together in
   all ways and assigning signs from loop/hole-line parity.
 - `diagrams.py` — `get_only_linked`: keeps only connected (linked) terms via graph traversal.
