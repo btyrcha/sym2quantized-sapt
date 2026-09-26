@@ -9,8 +9,10 @@ that a contraction across opposite spins vanishes, and
 :func:`double_fermi_vac.evaluate_deltas_double_vac` so that a delta
 does, and its surviving index keeps the tag.  Wick's theorem then does
 the spin bookkeeping exactly, with no spin-summation rule at all.
-Write each operator as its spin sectors and give each resolvent sector
-its own normalisation.
+Write the perturbation as its spin sectors; the resolvent builder
+:func:`sym2quantized_sapt.sapt_utils.get_R_nm` works unchanged, since
+its untagged indices run over both spins and take the tags of the
+indices they contract with.
 
 Index renaming keeps the spins apart too, and :func:`index_latex`
 prints a beta index with a bar over it.

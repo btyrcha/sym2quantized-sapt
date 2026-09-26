@@ -108,10 +108,13 @@ the closed-shell `2A − B`.
 Both routes therefore hold for MP-n.  **Spin tags** are the general
 mechanism, and the supported route: indices carry `is_alpha` / `is_beta`, the contraction rule
 vanishes across them (the same mechanism as the monomer tags), the
-fluctuation operator enters as its four spin sectors, and each
-resolvent sector gets its own normalisation — `1/(2!)^2` for two
-indistinguishable same-spin pairs, `1` for the distinguishable mixed
-pair.  That route agrees with psi4's conventional UHF-MP2 to ~1e-16
+fluctuation operator enters as its four spin sectors, and the
+resolvent is the library's `get_R_nm`, unchanged: its untagged indices
+run over both spins and take the tags of W's indices, so its one
+`1/(2!)^2` is right.  (Written out by sector instead, the resolvent
+needs `1/(2!)^2` for two same-spin pairs and `1` for the mixed pair,
+with α before β; the two forms give the same energy.)  The by-sector
+form agrees with psi4's conventional UHF-MP2 to ~1e-16
 per spin channel (derivation and numeric check live in the downstream
 application: `derive_ump2_uhf.py` / `run_ump2_uhf_check.py`).
 **Per-loop labels** were the cheaper route for spin-free spatial

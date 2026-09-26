@@ -7,11 +7,15 @@ proof of concept, not maintained, and is shown here only for comparison.
 **Spin tags** (``is_alpha`` / ``is_beta``) are the open-shell analogue
 of the monomer tags: contractions vanish across them, so Wick's theorem
 does the UHF bookkeeping exactly.  The fluctuation operator enters as
-its four spin sectors and the (2,0) resolvent as its three, with the
-per-sector normalisation the tags make explicit: 1/(2!)^2 for two
-same-spin (indistinguishable) pairs, 1 for the distinguishable
-alpha+beta pair.  This route also matches psi4's conventional UHF-MP2
-(checked downstream to ~1e-16 per spin channel).
+its four spin sectors, written out here (the library has no monomer W
+builder).  The (2,0) resolvent is the library's ``get_R_nm``, unchanged:
+its indices carry no tag, so they run over both spins and take the tag
+of the W index they contract with, and its one normalisation 1/(2!)^2
+is the right one for that sum.  Tensors keep plain names (``v``); the
+tags carry the spin.  With the resolvent written out by sector
+instead (1/(2!)^2 same-spin, 1 for alpha before beta), this route was
+also checked downstream against psi4's conventional UHF-MP2, to ~1e-16
+per spin channel.
 
 **Per loop** (frozen proof of concept): the energy is derived once with
 spatial indices and then spin-summed with ``spin_integration_uhf``, one
@@ -23,48 +27,38 @@ route gave half the opposite-spin energy while passing its
 RHF-collapse gate -- see ``docs/notes/uhf-spin-summation.md``.
 
 Both routes are evaluated on small random UHF-like data and printed
-next to the textbook UMP2 formula, sector by sector.  A
-self-consistency gate cannot certify a formula; an independent
-reference can.
+next to the textbook UMP2 formula, sector by sector: the spin-tag
+route's spins are read off the index tags, the per-loop route's off its
+block names.  A self-consistency gate cannot certify a formula; an
+independent reference can.
 """
 
 import random
 from itertools import product
 
 from sympy import Add, Dummy, Mul, Rational, symbols
-from sympy.physics.secondquant import Dagger
 
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
+from sym2quantized_sapt.open_shell import has_spin_tags, index_spin
 from sym2quantized_sapt.operators import A, Ad
 from sym2quantized_sapt.sapt_utils import get_R_nm
 from sym2quantized_sapt.spin_integrator.uhf import spin_integration_uhf
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol as DVT
 
 SPIN = {"a": {"is_alpha": True}, "b": {"is_beta": True}}
-_counter = [0]
-
-
-def index(letter, spin, **kw):
-    _counter[0] += 1
-    return symbols(
-        f"{letter}_{_counter[0]}",
-        is_molA=True,
-        cls=Dummy,
-        **SPIN[spin],
-        **kw,
-    )
 
 
 def get_w_tagged():
-    """W = 1/2 sum over spin sectors of v_{s1 s2}."""
+    """W as its four spin sectors: each (upper, lower) slot pair of v,
+    (p, q) and (p', q'), carries one spin."""
     sectors = []
 
     for s1, s2 in product("ab", repeat=2):
-        p, q = index("p", s1), index("q", s1)
-        p2, q2 = index("p", s2), index("q", s2)
+        p, q = symbols("p q", is_molA=True, cls=Dummy, **SPIN[s1])
+        p2, q2 = symbols("p' q'", is_molA=True, cls=Dummy, **SPIN[s2])
         sectors.append(
             Rational(1, 2)
-            * DVT(f"v_{s1}{s2}", (p, p2), (q, q2))
+            * DVT("v", (p, p2), (q, q2))
             * Ad(q)
             * Ad(q2)
             * A(p2)
@@ -88,48 +82,12 @@ def get_w_spatial():
     )
 
 
-def r20_tagged(operator):
-    """(2,0) resolvent by spin sector: 1/4 same-spin, 1 mixed."""
-    pieces = []
-
-    for spins, coefficient in (
-        (("a", "a"), Rational(1, 4)),
-        (("b", "b"), Rational(1, 4)),
-        (("a", "b"), 1),
-    ):
-        holes = [index("i", s, below_fermi=True) for s in spins]
-        particles = [index("a", s, above_fermi=True) for s in spins]
-        excitation = (
-            Ad(holes[0]) * Ad(holes[1]) * A(particles[1]) * A(particles[0])
-        )
-        amplitude = wicks_double_vac(
-            excitation * operator,
-            keep_only_fully_contracted=True,
-            substitute_dummies=False,
-        )
-        # not a graph vertex, so labelled per index (holes, then
-        # particles) -- the names spin_integration_uhf gives it
-        denominator = DVT(
-            "_".join(("e", "".join(spins), "".join(spins))),
-            tuple(holes),
-            tuple(particles),
-            is_graph_vertex=False,
-        )
-
-        piece = coefficient * amplitude * Dagger(excitation) * denominator
-
-        pieces.append(piece)
-
-    return Add(*pieces).expand()
-
-
 # ---- spin tags ----------------------------------------------------------
-R20_W_tagged = r20_tagged(get_w_tagged())
+R20_W_tagged = get_R_nm(2, 0, get_w_tagged())
 
 E2_tagged = wicks_double_vac(
     get_w_tagged() * R20_W_tagged,
     keep_only_fully_contracted=True,
-    substitute_dummies=False,
 )
 
 print(f"UMP2, spin-tagged: {len(E2_tagged.args)} terms")
@@ -189,10 +147,15 @@ def orbitals(space, spin):
 
 
 def index_spins(tensor):
-    """(index, spin) for every upper, then lower, index of a spin-blocked
-    tensor, read off its name: one label per slot pair for a vertex
+    """(index, spin) for every upper, then lower, index of ``tensor``.
+
+    A spin-tagged tensor carries them on its indices.  A per-loop block
+    carries them in its name: one label per slot pair for a vertex
     (``v_ab``), upper then lower labels per index for a non-vertex
     (``e_ab_ba``)."""
+    if has_spin_tags(tensor):
+        return [(i, index_spin(i)) for i in (*tensor.upper, *tensor.lower)]
+
     labels = str(tensor.symbol).split("_")[1:]
 
     if tensor.is_graph_vertex:
@@ -208,7 +171,7 @@ def tensor_value(tensor, spin, orbital):
     upper = [(spin[i], orbital[i]) for i in tensor.upper]
     lower = [(spin[i], orbital[i]) for i in tensor.lower]
 
-    if str(tensor.symbol).startswith("v_"):
+    if str(tensor.symbol).split("_")[0] == "v":
         # v^{p p2}_{q q2} = (p q | p2 q2): pairs (p, q) and (p2, q2)
         (s1, p), (s2, p2) = upper
         (_, q), (_, q2) = lower
@@ -221,7 +184,8 @@ def tensor_value(tensor, spin, orbital):
 
 
 def energy_by_sector(expr):
-    """Evaluate a spin-blocked energy, keyed by the spins of e's holes."""
+    """Evaluate a spin-resolved energy, keyed by the spins of e's
+    holes."""
     sectors = {}
 
     for term in Add.make_args(expr):

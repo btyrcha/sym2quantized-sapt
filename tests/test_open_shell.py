@@ -4,7 +4,8 @@ indices, consulted by Wick's theorem. These tests are what the route
 guarantees: nothing contracts or survives a delta across opposite spins,
 no index that stands in for a tagged one loses the tag (renaming
 included), beta indices print with a bar, a tagged result cannot be
-spin-integrated a second time by mistake, and generated code gives every
+spin-integrated a second time by mistake, ``get_R_nm`` builds the
+resolvent of a tagged operator unchanged, and generated code gives every
 spin its own arrays.
 
 Tensors here are named plainly (``t``, ``x``): on this route the tags
@@ -12,9 +13,11 @@ carry the spin, so a per-sector name like ``t_ab`` would only repeat it.
 """
 
 import re
+from itertools import permutations, product
 
 import pytest
 from sympy import Add, Dummy, KroneckerDelta, Rational, Symbol, symbols, latex
+from sympy.physics.secondquant import Dagger
 
 from sym2quantized_sapt.code_generator import array_table, generate_einsum
 from sym2quantized_sapt.double_fermi_vac import (
@@ -22,8 +25,9 @@ from sym2quantized_sapt.double_fermi_vac import (
     substitute_dummies_double_vac,
     wicks_double_vac,
 )
-from sym2quantized_sapt.open_shell import has_spin_tags
+from sym2quantized_sapt.open_shell import has_spin_tags, index_spin
 from sym2quantized_sapt.operators import A, Ad
+from sym2quantized_sapt.sapt_utils import get_R_nm
 from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
@@ -246,6 +250,95 @@ def test_spin_integration_rejects_spin_tagged_input():
 
     with pytest.raises(ValueError, match="spin tags"):
         spin_integration(term)
+
+
+def _w_tagged():
+    """W = 1/2 v^{pp'}_{qq'} q+ q'+ p' p as its four spin sectors: each
+    slot pair of v, (p, q) and (p', q'), carries one spin."""
+    sectors = []
+
+    for s1, s2 in product("ab", repeat=2):
+        p, q = _tagged("p", s1), _tagged("q", s1)
+        p2, q2 = _tagged("p'", s2), _tagged("q'", s2)
+        sectors.append(
+            Rational(1, 2)
+            * DoubleVacuumTensorSymbol("v", (p, p2), (q, q2))
+            * Ad(q)
+            * Ad(q2)
+            * A(p2)
+            * A(p)
+        )
+
+    return Add(*sectors)
+
+
+def _r20_by_sector(operator):
+    """The (2,0) resolvent on ``operator``, written out by spin sector:
+    1/(2!)^2 for a same-spin pair, 1 for the mixed pair with alpha
+    before beta.  The denominator gets get_R_nm's symmetries, so the two
+    forms canonicalize alike."""
+    pair = list(permutations(range(2)))
+    symmetries = tuple(product(pair, pair))
+    sectors = []
+
+    for spins, coefficient in (
+        ("aa", Rational(1, 4)),
+        ("bb", Rational(1, 4)),
+        ("ab", 1),
+    ):
+        holes = [_tagged("i", s, below_fermi=True) for s in spins]
+        particles = [_tagged("a", s, above_fermi=True) for s in spins]
+        excitation = (
+            Ad(holes[0]) * Ad(holes[1]) * A(particles[1]) * A(particles[0])
+        )
+        amplitude = wicks_double_vac(
+            excitation * operator,
+            keep_only_fully_contracted=True,
+            substitute_dummies=False,
+        )
+        denominator = DoubleVacuumTensorSymbol(
+            "e",
+            tuple(holes),
+            tuple(particles),
+            symmetries,
+            is_graph_vertex=False,
+        )
+        sectors.append(
+            coefficient * amplitude * Dagger(excitation) * denominator
+        )
+
+    return Add(*sectors).expand()
+
+
+def _named(expr):
+    """``expr`` with every dummy replaced by a symbol of the same name and
+    assumptions.  Each canonicalization mints fresh dummies, so two
+    separately canonicalized expressions share none, even where they
+    agree term by term.  Safe on canonical output, whose names never
+    repeat, not even across spins."""
+    return expr.xreplace(
+        {d: Symbol(d.name, **d.assumptions0) for d in expr.atoms(Dummy)}
+    )
+
+
+def test_get_R_nm_works_unchanged_on_spin_tagged_input():
+    # get_R_nm's own indices carry no tag: they run over both spins and
+    # take the tag of the W index they contract with, so its single
+    # normalisation 1/(2!)^2 must give exactly the resolvent written out
+    # by spin sector (examples/ump2_uhf.py relies on this)
+    ump2_library = wicks_double_vac(
+        _w_tagged() * get_R_nm(2, 0, _w_tagged()),
+        keep_only_fully_contracted=True,
+    )
+    ump2_by_sector = wicks_double_vac(
+        _w_tagged() * _r20_by_sector(_w_tagged()),
+        keep_only_fully_contracted=True,
+    )
+
+    assert ump2_by_sector != 0
+    # every index took a tag, the denominator's included
+    assert all(index_spin(index) for index in ump2_library.atoms(Dummy))
+    assert (_named(ump2_library) - _named(ump2_by_sector)).expand() == 0
 
 
 def _code_arrays(code):

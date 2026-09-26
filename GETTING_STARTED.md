@@ -105,9 +105,12 @@ in `double_fermi_vac.py`.
 **Spin tags** (`is_alpha` / `is_beta`) are the monomer-tag mechanism
 applied to spin, so contractions vanish across opposite tags and Wick's
 theorem does the bookkeeping exactly.
-Write each operator as its spin sectors and give each resolvent sector
-its own normalisation — `1/(n!)**2` per group of same-spin
-(indistinguishable) pairs, `1` for distinguishable pairs.
+Write the perturbation as its spin sectors, each slot pair of `v`
+tagged with one spin.  The resolvent needs nothing new: `get_R_nm` works
+unchanged.  Its indices carry no tag, so they run over both spins and
+take the tag of the index they contract with, and its one
+normalisation, `1/(n! m!)**2`, is the right one for that sum
+(`examples/ump2_uhf.py`).
 Index renaming (`substitute_dummies_double_vac`) keeps the spins apart,
 and β indices print with a bar: `\bar{i}_2`.
 Name tensors plainly (`t`, `v`): the tags carry the spin, and generated
