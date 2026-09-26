@@ -2,7 +2,7 @@
 
 **Status: frozen proof of concept, not maintained (since 2026-09-26).**
 The supported UHF route is spin tags on the indices (`open_shell.py`;
-`GETTING_STARTED.md` §4, `spin-tag-renaming.md`). This page stays as the
+`spin-tags.md`, `GETTING_STARTED.md` §4). This page stays as the
 design record of the per-loop route; its known limitations, listed at
 the end, will not be fixed.
 

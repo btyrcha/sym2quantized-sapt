@@ -170,6 +170,7 @@ Nothing raises. Dividing by it (`v / e`) is safe, since a `Pow` is never traced.
   the core), `index_latex` (β index printed with a bar), used by the tensor and operator
   printers, and `has_spin_tags`, with which `spin_integration` refuses tagged input. New UHF
   work goes here; it shares no code with the frozen per-loop route (the two agree on UMP2).
+  `get_R_nm` works on tagged input unchanged. → `docs/notes/spin-tags.md`
 - `sinfinitizer.py` — `sinfinitizer`: expands overlap integrals (S^∞), wiring tensors together in
   all ways and assigning signs from loop/hole-line parity.
 - `diagrams.py` — `get_only_linked`: keeps only connected (linked) terms via graph traversal.

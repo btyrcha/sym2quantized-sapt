@@ -119,6 +119,8 @@ symmetries may be declared, since the spin moves with the index.
 A spin-tagged result is already resolved by spin: **do not pass it to
 `spin_integration`**, the RHF step, which would count every loop a
 second time.  It raises a `ValueError` if you do.
+How the tags work, what is validated, and what is not yet checked:
+`docs/notes/spin-tags.md`.
 
 **Frozen: per-loop summation.**  `sym2quantized_sapt/spin_integrator/uhf.py`
 (`spin_integration_uhf`, with its consistency gate `rhf_collapse`)
