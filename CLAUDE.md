@@ -69,6 +69,10 @@ one kind share the counter (α holes `i`, `i_1`; β holes `i_2`, `i_3`). `.name`
 across spins, because `generate_einsum` identifies indices by name; the bar over a β index
 (`\bar{i}_2`, `open_shell.index_latex`) is added in LaTeX output only.
 → `docs/notes/spin-tag-renaming.md`
+On the spin-tag route, **name tensors plainly** (`t`, `v`): the tags carry the spin, and
+`generate_einsum` appends one spin letter per axis to the array name (`t_rraa_abab`).
+Permutation symmetries stay valid, since the spin moves with the index. Per-sector names such
+as `t_ab` are an obsolete workaround from when array names were spin-blind.
 
 `substitute_dummies_double_vac(expr, pretty_indices={...})` overrides those names. **That option is
 for `latex()` output only — never feed a renamed expression to `generate_einsum`.** Code generation
@@ -171,6 +175,10 @@ Nothing raises. Dividing by it (`v / e`) is safe, since a `Pow` is never traced.
   monomer-only) into two three-index arrays (`v_abrs` → `Qar, Qbs`), one auxiliary index per
   ERI; no other tensor is touched, including spin blocks `v_ab`.
   → `docs/notes/density-fitting.md`
+  Array names come from one function, `_array_names`: `symbol_<space letters>`, plus one spin
+  letter per axis for a spin-tagged tensor (`t_rraa_abab`, density-fitting factors `Qar_aa`),
+  plus the renames (`v_A` → `vA`). A tensor with both tagged and untagged indices raises.
+  `array_table(expr, density_fitting=…)` describes every array under exactly those names.
 - `utils.py` — `format_expr` (LaTeX align formatting), `timeit` decorator.
 
 ## Conventions

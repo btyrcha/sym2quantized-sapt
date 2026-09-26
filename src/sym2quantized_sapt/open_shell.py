@@ -30,9 +30,25 @@ from sympy import Symbol
 __all__ = [
     "has_spin_tags",
     "index_latex",
+    "index_spin",
     "opposite_spins",
     "shared_spin_tag",
 ]
+
+
+def index_spin(index) -> str:
+    """The spin letter of an index: ``"a"`` for ``is_alpha``, ``"b"`` for
+    ``is_beta``, ``""`` for an untagged one.  These are the letters the
+    generated array names and ``code_generator.array_table`` use."""
+    assumptions = index.assumptions0
+
+    if assumptions.get("is_alpha"):
+        return "a"
+
+    if assumptions.get("is_beta"):
+        return "b"
+
+    return ""
 
 
 def has_spin_tags(expr) -> bool:
@@ -40,11 +56,7 @@ def has_spin_tags(expr) -> bool:
     ``is_beta``), i.e. whether ``expr`` belongs to the spin-tag route.
     One tagged index is enough; free (``Symbol``) and summed (``Dummy``)
     indices both count."""
-    return any(
-        symbol.assumptions0.get("is_alpha")
-        or symbol.assumptions0.get("is_beta")
-        for symbol in expr.atoms(Symbol)
-    )
+    return any(index_spin(symbol) for symbol in expr.atoms(Symbol))
 
 
 def shared_spin_tag(x, y) -> dict:

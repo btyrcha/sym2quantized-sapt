@@ -110,6 +110,9 @@ its own normalisation — `1/(n!)**2` per group of same-spin
 (indistinguishable) pairs, `1` for distinguishable pairs.
 Index renaming (`substitute_dummies_double_vac`) keeps the spins apart,
 and β indices print with a bar: `\bar{i}_2`.
+Name tensors plainly (`t`, `v`): the tags carry the spin, and generated
+code gives each spin sector its own arrays (`t_rraa_abab`).  Permutation
+symmetries may be declared, since the spin moves with the index.
 
 A spin-tagged result is already resolved by spin: **do not pass it to
 `spin_integration`**, the RHF step, which would count every loop a
@@ -131,6 +134,9 @@ every array the emitted code mentions, what each of its axes **is** —
 role (upper/lower), space (occupied/virtual/general), monomer, and
 spin.  Numeric code can then build each array mechanically, which is
 what makes a derivation reproducible without hand-transcription.
+Its keys are exactly the names the emitted code uses (pass the same
+`density_fitting`), and a spin-tagged tensor's arrays carry one spin
+letter per axis (`t_rraa_abab`).
 
 ## 6. Validation discipline
 

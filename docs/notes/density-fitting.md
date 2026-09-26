@@ -27,6 +27,11 @@ test), the overlap `s`, the resolvent denominator `e`, every amplitude, and the
 spin blocks `v_ab`, … from `spin_integration_uhf`. With no `v` in the
 expression the output is byte-identical to the non-fitted one.
 
+A spin-tagged `v`, which the spin-tag route names plainly, is factorized
+like any other, and each factor carries the spins of its slot pair:
+`Qar_aa`, `Qbs_bb`. `array_table(expr, density_fitting=True)` describes the
+factors under the same names, with an auxiliary axis first.
+
 For a monomer-only `v` both factors come from the same monomer. Closed-shell
 MP2 from `<W R_(2,0) W>` gives the same energy fitted and unfitted, and matches
 the MP2 formula on random density-fitting-shaped integrals (checked
