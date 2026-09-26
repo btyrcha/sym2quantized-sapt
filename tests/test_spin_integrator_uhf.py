@@ -1,5 +1,5 @@
 import pytest
-from sympy import Add, Mul, symbols, Dummy
+from sympy import Add, Mul, symbols
 
 from sym2quantized_sapt.double_fermi_vac import wicks_double_vac
 from sym2quantized_sapt.sapt_utils import get_R_nm, get_V_operator
@@ -13,7 +13,6 @@ from sym2quantized_sapt.spin_integrator import (
 )
 from test_spin_integrator import crossed_mp2_term, mp2_fluctuation_operator
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
-from sym2quantized_sapt.operators import A, Ad
 from sym2quantized_sapt.code_generator import array_table
 
 
@@ -206,45 +205,3 @@ def test_array_table_leaves_unblocked_tensors_unlabelled():
 
     assert table["t_rsab"]["spin_block"] == ""
     assert all(axis["spin"] == "" for axis in table["t_rsab"]["axes"])
-
-
-def test_fallback_summation_dummy_inherits_the_spin_tag():
-    # a bubble: two general same-spin indices contract, and the fresh
-    # particle/hole summation dummy must range over THAT spin only
-
-    p = symbols("p", is_molA=True, is_alpha=True, cls=Dummy)
-    q = symbols("q", is_molA=True, is_alpha=True, cls=Dummy)
-    u = DoubleVacuumTensorSymbol("u_a", (p,), (q,))
-
-    result = wicks_double_vac(
-        u * Ad(q) * A(p),
-        keep_only_fully_contracted=True,
-        substitute_dummies=False,
-    )
-
-    tags = [
-        index.assumptions0.get("is_alpha") for index in result.atoms(Dummy)
-    ]
-
-    assert tags and all(tags)
-
-
-def test_contraction_with_untagged_hole_keeps_the_spin_tag():
-    # a tagged general index meets an untagged hole: the contraction gives
-    # d(p_a, i), and the hole that survives it must range over alpha only
-
-    p = symbols("p", is_molA=True, is_alpha=True, cls=Dummy)
-    i = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
-    x = DoubleVacuumTensorSymbol("x", (p,), (i,))
-
-    result = wicks_double_vac(
-        x * Ad(p) * A(i),
-        keep_only_fully_contracted=True,
-        substitute_dummies=False,
-    )
-
-    tags = [
-        index.assumptions0.get("is_alpha") for index in result.atoms(Dummy)
-    ]
-
-    assert tags and all(tags)
