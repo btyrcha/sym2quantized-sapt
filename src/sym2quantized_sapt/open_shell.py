@@ -15,9 +15,9 @@ its own normalisation.
 Index renaming keeps the spins apart too, and :func:`index_latex`
 prints a beta index with a bar over it.
 
-A spin-tagged result is already resolved by spin: do not pass it to
-the RHF :func:`sym2quantized_sapt.spin_integrator.spin_integration`,
-which would count its loops a second time.
+A spin-tagged result is already resolved by spin, so the RHF
+:func:`sym2quantized_sapt.spin_integrator.spin_integration` refuses it
+(:func:`has_spin_tags`): it would count every loop a second time.
 
 The per-loop route, :mod:`sym2quantized_sapt.spin_integrator.uhf`
 (derive with spatial indices, then sum over spin per Goldstone loop),
@@ -25,11 +25,26 @@ is a frozen proof of concept, not maintained.  The two routes share no
 code.
 """
 
+from sympy import Symbol
+
 __all__ = [
+    "has_spin_tags",
     "index_latex",
     "opposite_spins",
     "shared_spin_tag",
 ]
+
+
+def has_spin_tags(expr) -> bool:
+    """Whether any index of ``expr`` carries a spin tag (``is_alpha`` /
+    ``is_beta``), i.e. whether ``expr`` belongs to the spin-tag route.
+    One tagged index is enough; free (``Symbol``) and summed (``Dummy``)
+    indices both count."""
+    return any(
+        symbol.assumptions0.get("is_alpha")
+        or symbol.assumptions0.get("is_beta")
+        for symbol in expr.atoms(Symbol)
+    )
 
 
 def shared_spin_tag(x, y) -> dict:

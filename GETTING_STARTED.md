@@ -113,7 +113,7 @@ and β indices print with a bar: `\bar{i}_2`.
 
 A spin-tagged result is already resolved by spin: **do not pass it to
 `spin_integration`**, the RHF step, which would count every loop a
-second time.  Nothing raises yet.
+second time.  It raises a `ValueError` if you do.
 
 **Frozen: per-loop summation.**  `sym2quantized_sapt/spin_integrator/uhf.py`
 (`spin_integration_uhf`, with its consistency gate `rhf_collapse`)

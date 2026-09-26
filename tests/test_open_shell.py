@@ -3,10 +3,12 @@ The spin-tag route (``open_shell``): ``is_alpha`` / ``is_beta`` on the
 indices, consulted by Wick's theorem. These tests are what the route
 guarantees: nothing contracts or survives a delta across opposite spins,
 no index that stands in for a tagged one loses the tag (renaming
-included), and beta indices print with a bar.
+included), beta indices print with a bar, and a tagged result cannot be
+spin-integrated a second time by mistake.
 """
 
-from sympy import Add, Dummy, KroneckerDelta, symbols, latex
+import pytest
+from sympy import Add, Dummy, KroneckerDelta, Rational, Symbol, symbols, latex
 
 from sym2quantized_sapt.code_generator import generate_einsum
 from sym2quantized_sapt.double_fermi_vac import (
@@ -14,7 +16,9 @@ from sym2quantized_sapt.double_fermi_vac import (
     substitute_dummies_double_vac,
     wicks_double_vac,
 )
+from sym2quantized_sapt.open_shell import has_spin_tags
 from sym2quantized_sapt.operators import A, Ad
+from sym2quantized_sapt.spin_integrator import spin_integration
 from sym2quantized_sapt.tensors import DoubleVacuumTensorSymbol
 
 
@@ -208,3 +212,31 @@ def test_beta_indices_print_with_a_bar():
     assert latex(t) == r"t_ab^{i\bar{i}_1}_{a\bar{a}_1}"
     assert latex(Ad(i_beta)) == r"a^\dagger_{\bar{i}_1}"
     assert latex(A(a_alpha)) == r"a_{a}"
+
+
+def test_has_spin_tags():
+    i = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
+    a = symbols("a", is_molA=True, above_fermi=True, cls=Dummy)
+    spatial = DoubleVacuumTensorSymbol("x", (i,), (a,))
+
+    assert not has_spin_tags(Rational(1, 2) * spatial)
+
+    # one tagged index is enough, summed or free
+    i_beta = _tagged("i", "b", below_fermi=True)
+    assert has_spin_tags(
+        spatial * DoubleVacuumTensorSymbol("y", (a,), (i_beta,))
+    )
+    assert has_spin_tags(Ad(Symbol("p", is_molA=True, is_alpha=True)))
+
+
+def test_spin_integration_rejects_spin_tagged_input():
+    # an alpha-only loop is already resolved by spin: RHF spin integration
+    # would multiply it by 2 and count the loop a second time
+    i = _tagged("i", "a", below_fermi=True)
+    a = _tagged("a", "a", above_fermi=True)
+    term = DoubleVacuumTensorSymbol("x_a", (i,), (a,)) * (
+        DoubleVacuumTensorSymbol("y_a", (a,), (i,))
+    )
+
+    with pytest.raises(ValueError, match="spin tags"):
+        spin_integration(term)

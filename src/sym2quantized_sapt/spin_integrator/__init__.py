@@ -8,13 +8,15 @@ enumerates the same loops instead of counting them; it is a frozen
 proof of concept, not maintained.  The supported open-shell route, spin
 tags on the indices, does no summation at all and lives in
 :mod:`sym2quantized_sapt.open_shell`.  A spin-tagged expression is
-already resolved by spin and must not be passed to
-:func:`spin_integration`, which would count its loops a second time.
+already resolved by spin, so :func:`spin_integration` raises
+``ValueError`` on it instead of counting its loops a second time.
 """
 
 from sympy import Add, Mul
 from sympy.core import Expr
 from sympy.physics.secondquant import TensorSymbol
+
+from sym2quantized_sapt.open_shell import has_spin_tags
 
 
 def _loop_partition(upper, lower):
@@ -86,9 +88,17 @@ def spin_integration(expr: Expr) -> Expr:
     Indices in returned expression refer to orbitals.
 
     Spin-tagged input (``is_alpha`` / ``is_beta``, the spin-tag route)
-    is already resolved by spin and must not be passed here: each of
-    its loops would be counted twice.  Nothing checks this yet.
+    is already resolved by spin: each of its loops would be counted
+    twice, so it raises ``ValueError``.
     """
+
+    if has_spin_tags(expr):
+        raise ValueError(
+            "spin_integration is the RHF sum over spin, but this "
+            "expression carries spin tags (is_alpha / is_beta): it is "
+            "already resolved by spin, and integrating it would count "
+            "every loop twice."
+        )
 
     if isinstance(expr, Add):
         return Add(*[spin_integration(arg) for arg in expr.args])
