@@ -136,15 +136,12 @@ def test_can_evaluate_opposite_spin_delta():
     assert reference_latex == tested_expr
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="the index that survives a delta is picked by Fermi-level "
-    "information alone, so the alpha-tagged general `p` is replaced by the "
-    "untagged hole `i` and the spin tag is dropped: the term then sums over "
-    "both spins. Through an untagged index this also hides an opposite-spin "
-    "pair from the zero check: d(p_a, q) d(q, r_b) comes back nonzero",
-)
 def test_delta_survivor_inherits_the_spin_tag():
+    """
+    Test checking if the index that survives a delta keeps the spin tag of
+    the one it replaces: the hole i beats the general p_a on Fermi-level
+    information, and must come out alpha-tagged.
+    """
     p_alpha = symbols("p", is_molA=True, is_alpha=True, cls=Dummy)
     i = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
 
@@ -157,3 +154,42 @@ def test_delta_survivor_inherits_the_spin_tag():
     ]
 
     assert tags and all(tags)
+
+
+def test_opposite_spins_through_untagged_index_give_zero():
+    """
+    Test checking if d(p_a, q) d(q, r_b) is zero: the untagged q takes the
+    spin of whichever index it meets first, so the pair still clashes.
+    """
+    reference_latex = r"0"
+
+    p_alpha = symbols("p", is_molA=True, is_alpha=True, cls=Dummy)
+    q = symbols("q", is_molA=True, cls=Dummy)
+    r_beta = symbols("r", is_molA=True, is_beta=True, cls=Dummy)
+
+    expr = (
+        Ad(p_alpha)
+        * A(r_beta)
+        * KroneckerDelta(p_alpha, q)
+        * KroneckerDelta(q, r_beta)
+    )
+
+    expr = evaluate_deltas_double_vac(expr)
+
+    tested_expr = latex(expr)
+
+    assert reference_latex == tested_expr
+
+
+def test_delta_with_free_untagged_survivor_is_kept():
+    """
+    Test checking if the delta is kept when the index that would survive
+    is free and untagged: the result is nonzero only for one spin of it,
+    which renaming a free index cannot express.
+    """
+    p_alpha = symbols("p", is_molA=True, is_alpha=True, cls=Dummy)
+    i = symbols("i", is_molA=True, below_fermi=True, cls=Dummy)
+
+    expr = Ad(p_alpha) * KroneckerDelta(p_alpha, i)
+
+    assert evaluate_deltas_double_vac(expr) == expr

@@ -142,8 +142,9 @@ Nothing raises. Dividing by it (`v / e`) is safe, since a `Pow` is never traced.
 - `spin_integrator.py` — `spin_integration` (RHF) + `_loop_partition` / `_count_loops`
   (Goldstone-diagram loops; the partition is what spin bookkeeping keys off).
 - `open_shell.py` — **unrestricted references.** Spin tags (`opposite_spins`,
-  `shared_spin_tag`), which `double_fermi_vac` consults so contractions vanish
-  across opposite spins, and the per-loop route (`spin_integration_uhf`,
+  `shared_spin_tag`), which `double_fermi_vac` consults so contractions and
+  deltas vanish across opposite spins and a delta's surviving index keeps
+  the tag, and the per-loop route (`spin_integration_uhf`,
   `rhf_collapse`). The two mechanisms are alternatives and agree on UMP2.
   Blocks are labelled per slot pair (`t_ab`), non-vertex tensors per index
   (`e_ab_ba`). → `docs/notes/uhf-spin-summation.md`

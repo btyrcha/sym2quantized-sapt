@@ -190,6 +190,35 @@ def contraction_double_vac(X, Y):
         return contraction(X, Y)
 
 
+def _merge_delta_indices(expr, survivor, killed, indicies):
+    """
+    Replaces ``killed`` with ``survivor`` in ``expr``, keeping the spin tag.
+
+    The survivor of a delta is chosen by fermi level information only.
+    If ``killed`` carries a spin tag the survivor lacks, both are replaced
+    with a copy of the survivor that carries it; otherwise the term would
+    sum over both spins. Returns None when that copy is not allowed (the
+    survivor is free and renaming it would change the result); the delta
+    must then stay unevaluated.
+
+    Helper function.
+    """
+    tag = shared_spin_tag(survivor, killed)
+    survivor_tagged = survivor.assumptions0.get(
+        "is_alpha"
+    ) or survivor.assumptions0.get("is_beta")
+
+    if not tag or survivor_tagged:
+        return expr.subs(killed, survivor)
+
+    if not (isinstance(survivor, Dummy) and indicies[survivor]):
+        return None
+
+    tagged = Dummy(survivor.name, **{**survivor.assumptions0, **tag})
+
+    return expr.subs({killed: tagged, survivor: tagged})
+
+
 def evaluate_deltas_double_vac(expr):
     """
     Function evaluating KroneckerDelta symbols in the expression assuming
@@ -238,7 +267,12 @@ def evaluate_deltas_double_vac(expr):
                     # Method killabel_index returns index containing less information
                     # regarding fermi level. If both contain the same amount of information
                     # alphabetical order is used to determine wich is preferred.
-                    expr = expr.subs(d.killable_index, d.preferred_index)
+                    merged = _merge_delta_indices(
+                        expr, d.preferred_index, d.killable_index, indicies
+                    )
+                    if merged is None:
+                        continue
+                    expr = merged
                     if len(deltas) > 1:
                         return evaluate_deltas_double_vac(expr)
 
@@ -249,7 +283,12 @@ def evaluate_deltas_double_vac(expr):
                 ):
                     # Here we have situation where the preferred_index appers somewhere
                     # else in the expression. We can change
-                    expr = expr.subs(d.preferred_index, d.killable_index)
+                    merged = _merge_delta_indices(
+                        expr, d.killable_index, d.preferred_index, indicies
+                    )
+                    if merged is None:
+                        continue
+                    expr = merged
                     if len(deltas) > 1:
                         return evaluate_deltas_double_vac(expr)
 

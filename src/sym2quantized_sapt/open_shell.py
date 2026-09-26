@@ -7,7 +7,9 @@ one decision this module asks of a caller.
 general route: ``is_alpha`` / ``is_beta`` on an index is the open-shell
 analogue of the ``is_molA`` / ``is_molB`` monomer tag, and
 :func:`double_fermi_vac.contraction_double_vac` consults them so that a
-contraction across opposite spins vanishes.  Wick's theorem then does
+contraction across opposite spins vanishes (and
+:func:`double_fermi_vac.evaluate_deltas_double_vac` so that a delta
+does, and its surviving index keeps the tag).  Wick's theorem then does
 the spin bookkeeping exactly, with no spin-summation rule at all.
 Write each operator as its spin sectors and give each resolvent sector
 its own normalisation.
