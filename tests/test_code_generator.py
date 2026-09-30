@@ -1,4 +1,5 @@
 import pytest
+import re
 import string
 
 from sympy import symbols, Dummy, Rational
@@ -13,7 +14,7 @@ from sym2quantized_sapt.double_fermi_vac import (
 )
 from sym2quantized_sapt.sapt_utils import get_V_operator, get_R_nm
 from sym2quantized_sapt.spin_integrator import spin_integration
-from sym2quantized_sapt.code_generator import generate_einsum
+from sym2quantized_sapt.code_generator import array_table, generate_einsum
 
 
 def test_single_self_contraction():
@@ -386,10 +387,11 @@ def test_tensor_and_mul_routes_agree_on_variable_names():
 # --------------------------------------------------------------------------
 # density fitting
 #
-# `generate_einsum(..., density_fitting=True)` replaces every intermolecular
-# two-electron integral `v^{p r}_{q s} = (p q | r s)` with its factorization
-# `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the three-index arrays `Qqp` and
-# `Qsr` in place of `v_qspr`. See `docs/notes/density-fitting.md`.
+# `generate_einsum(..., density_fitting=True)` replaces every two-electron
+# integral `v^{p r}_{q s} = (p q | r s)`, intermolecular or monomer-only, with
+# its factorization `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the three-index
+# arrays `Qqp` and `Qsr` in place of `v_qspr`. See
+# `docs/notes/density-fitting.md`.
 # --------------------------------------------------------------------------
 
 
@@ -700,3 +702,45 @@ def test_density_fitting_does_not_drop_a_squared_eri():
     assert '+2 * np.einsum("", )' != generate_einsum(
         2.0 * v * v, density_fitting=True
     )
+
+
+def _code_arrays(code):
+    """The array names a block of generated einsum lines refers to."""
+    return {
+        name
+        for arguments in re.findall(r'np\.einsum\("[^"]*", ([^)]*)\)', code)
+        for name in arguments.split(", ")
+    }
+
+
+def test_array_table_keys_match_the_code():
+    # the table must describe exactly the arrays the generated code refers
+    # to: the monomer-potential renames, the density-fitting factors and the
+    # expansion of the expression included
+    a, i, b, j = _sapt_indices()
+
+    vA = DoubleVacuumTensorSymbol("(v_A)", (a,), (i,))
+    vB = DoubleVacuumTensorSymbol("(v_B)", (b,), (j,))
+    t = DoubleVacuumTensorSymbol("t", (i, j), (a, b))
+    v = DoubleVacuumTensorSymbol("v", (a, b), (i, j))
+
+    for expr, density_fitting in (
+        (vA * vB, False),
+        ((vA + vB) * t, False),
+        (v * t, True),
+    ):
+        code = generate_einsum(expr, density_fitting=density_fitting)
+        table = array_table(expr, density_fitting=density_fitting)
+
+        assert set(table) == _code_arrays(code)
+
+    # a density-fitting factor: the auxiliary axis, then slot pair 0
+    factor = array_table(v * t, density_fitting=True)["Qar"]
+
+    assert [axis["role"] for axis in factor["axes"]] == ["aux", "l", "u"]
+    assert factor["axes"][0] == {
+        "role": "aux",
+        "space": "aux",
+        "monomer": "",
+        "spin": "",
+    }

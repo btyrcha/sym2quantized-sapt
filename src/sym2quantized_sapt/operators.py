@@ -1,5 +1,7 @@
 from sympy.physics.secondquant import AnnihilateFermion, CreateFermion
 
+from sym2quantized_sapt.open_shell import index_latex
+
 
 class DoubleFermiVaccum:
     is_molA = False
@@ -27,7 +29,7 @@ class AnnihilateFermion_A(AnnihilateFermion, DoubleFermiVaccum):
         return "AnnihilateFermion_A(%s)" % self.state
 
     def _latex(self, printer):
-        return "a_{%s}" % self.state.name
+        return "a_{%s}" % index_latex(self.state)
 
 
 class CreateFermion_A(CreateFermion, DoubleFermiVaccum):
@@ -49,7 +51,7 @@ class CreateFermion_A(CreateFermion, DoubleFermiVaccum):
         return "CreateFermion_A(%s)" % self.state
 
     def _latex(self, printer):
-        return "a^\\dagger_{%s}" % self.state.name
+        return "a^\\dagger_{%s}" % index_latex(self.state)
 
 
 class AnnihilateFermion_B(AnnihilateFermion, DoubleFermiVaccum):
@@ -71,7 +73,7 @@ class AnnihilateFermion_B(AnnihilateFermion, DoubleFermiVaccum):
         return "AnnihilateFermion_B(%s)" % self.state
 
     def _latex(self, printer):
-        return "b_{%s}" % self.state.name
+        return "b_{%s}" % index_latex(self.state)
 
 
 class CreateFermion_B(CreateFermion, DoubleFermiVaccum):
@@ -93,7 +95,7 @@ class CreateFermion_B(CreateFermion, DoubleFermiVaccum):
         return "CreateFermion_B(%s)" % self.state
 
     def _latex(self, printer):
-        return "b^\\dagger_{%s}" % self.state.name
+        return "b^\\dagger_{%s}" % index_latex(self.state)
 
 
 # importable operators classes

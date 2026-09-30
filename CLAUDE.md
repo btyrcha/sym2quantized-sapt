@@ -32,6 +32,9 @@ python3 -m pytest ./tests/ --slow
 
 # Single test
 python3 -m pytest tests/test_sapt_disp.py::test_can_evaluate_sapt_disp_20_energy
+# pytest imports the package from this checkout's src/ (`pythonpath` in
+# pyproject.toml), whatever is installed; scripts run directly need the
+# editable install of this checkout, or PYTHONPATH=src
 
 # Run a derivation script directly
 python3 examples/sapt_pol20.py
@@ -64,6 +67,15 @@ Everything keys off SymPy `Dummy` symbols carrying assumptions. Two orthogonal a
 Canonical dummy names produced by `substitute_dummies_double_vac`:
 `a`=particle-A, `i`=hole-A, `p`=general-A; `b`=particle-B, `j`=hole-B, `q`=general-B (with
 `_1, _2, …` suffixes). Create indices with e.g. `symbols("a", is_molA=True, above_fermi=True, cls=Dummy)`.
+Spin-tagged indices (`is_alpha` / `is_beta`) are renamed only within their spin, and the spins of
+one kind share the counter (α holes `i`, `i_1`; β holes `i_2`, `i_3`). `.name` must never repeat
+across spins, because `generate_einsum` identifies indices by name; the bar over a β index
+(`\bar{i}_2`, `open_shell.index_latex`) is added in LaTeX output only.
+→ `docs/notes/spin-tag-renaming.md`
+On the spin-tag route, **name tensors plainly** (`t`, `v`): the tags carry the spin, and
+`generate_einsum` appends one spin letter per axis to the array name (`t_rraa_abab`).
+Permutation symmetries stay valid, since the spin moves with the index. Per-sector names such
+as `t_ab` are an obsolete workaround from when array names were spin-blind.
 
 `substitute_dummies_double_vac(expr, pretty_indices={...})` overrides those names. **That option is
 for `latex()` output only — never feed a renamed expression to `generate_einsum`.** Code generation
@@ -81,6 +93,9 @@ this as `xfail`.
 2. `wicks_double_vac(expr, keep_only_fully_contracted=True)` — apply generalized Wick's theorem,
    evaluate deltas, and canonicalize dummies so equivalent terms collapse.
 3. `spin_integration(expr)` — RHF spin integration (multiplies each term by `2**(#loops)`).
+   **Never on a spin-tagged (UHF) expression:** tags already resolve the spin, so every loop
+   would be counted twice; `spin_integration` raises `ValueError` on it
+   (`open_shell.has_spin_tags`).
 4. Output: `latex(expr)` / `utils.format_expr` for formulas, or `code_generator.generate_einsum`
    for runnable `np.einsum` code (uses psi4numpy index naming: a→r, b→s, i→a, j→b, applied by
    `generate_einsum` itself — the expression must still carry the canonical names at this point).
@@ -115,6 +130,14 @@ range — and silently collapses everything derived from it; that was a real bug
 and pinned by `test_generated_indicies_are_free`. `get_Pn_operator` and `get_R_nm` do use `Dummy`,
 correctly: they contract their own indices within the expression they build.
 
+**Denominators are not graph vertices.** Loop counting (`spin_integration`,
+`spin_integration_uhf`) treats every tensor as a Goldstone/Hugenholtz vertex and traces its
+`(upper_k, lower_k)` slot pairs as lines, except tensors built with `is_graph_vertex=False`. `get_R_nm` sets that flag on its denominator `e`, whose pairing is arbitrary
+under its symmetries. A denominator *multiplied* in without the flag merges separate loops:
+`<W R_(2,0) W>` gives `1.5A − B` instead of `2A − B`, and the UHF opposite-spin sector halves.
+Nothing raises. Dividing by it (`v / e`) is safe, since a `Pow` is never traced. Pinned by
+`tests/test_spin_integrator.py`.
+
 ## Module map (`src/sym2quantized_sapt/`)
 
 - `operators.py` — `AnnihilateFermion_A/B`, `CreateFermion_A/B` subclassing SymPy fermion ops +
@@ -128,17 +151,38 @@ correctly: they contract their own indices within the expression they build.
   `preorder_traversal` order on purpose, because its sort key is not total and a set would hand
   the tie-break to per-process hash randomization. Do not turn it back into `term.atoms(Dummy)`.
 - `tensors.py` — `DoubleVacuumTensorSymbol` (symbol + upper/lower index tuples + optional
-  permutation symmetries applied at construction).
+  permutation symmetries applied at construction + `is_graph_vertex` flag).
 - `sapt_utils.py` — operator builders: interaction `V`, exchange operators `get_a/b_operator`,
   permutation operators `get_P2/P4/Pn_operator`, resolvent superoperator `get_R_nm`.
-- `spin_integrator.py` — `spin_integration` + `_count_loops` (Goldstone-diagram loop counting).
+- `spin_integrator/` — spin summation after Wick's theorem.
+  - `__init__.py` — `spin_integration` (RHF) + `_loop_partition` / `_count_loops`
+    (Goldstone-diagram loops; the partition is what spin bookkeeping keys off).
+    It must not import `.uhf`, which imports these helpers back.
+  - `uhf.py` — **per-loop UHF route, a frozen proof of concept: not maintained, don't extend
+    it** (its known limitations are listed as won't-fix in the notes page).
+    `spin_integration_uhf` (one spin label per loop, `2**loops` spin-blocked copies),
+    `rhf_collapse` (its consistency gate), block naming (`_blocked` / `_split_block`,
+    `SPIN_LABELS`). Blocks are labelled per slot pair (`t_ab`), non-vertex tensors per index
+    (`e_ab_ba`). → `docs/notes/uhf-spin-summation.md`
+- `open_shell.py` — **spin-tag UHF route, the supported one**: `opposite_spins`,
+  `shared_spin_tag`, which `double_fermi_vac` consults so contractions and deltas vanish across
+  opposite spins and a delta's surviving index keeps the tag (`_merge_delta_indices` stays in
+  the core), `index_latex` (β index printed with a bar), used by the tensor and operator
+  printers, and `has_spin_tags`, with which `spin_integration` refuses tagged input. New UHF
+  work goes here; it shares no code with the frozen per-loop route (the two agree on UMP2).
+  `get_R_nm` works on tagged input unchanged. → `docs/notes/spin-tags.md`
 - `sinfinitizer.py` — `sinfinitizer`: expands overlap integrals (S^∞), wiring tensors together in
   all ways and assigning signs from loop/hole-line parity.
 - `diagrams.py` — `get_only_linked`: keeps only connected (linked) terms via graph traversal.
 - `code_generator.py` — `generate_einsum`: SymPy expression → `np.einsum` source string.
-  `density_fitting=True` factorizes the intermolecular ERI `v` into two three-index
-  arrays (`v_abrs` → `Qar, Qbs`), one auxiliary index per ERI; no other tensor is touched.
+  `density_fitting=True` factorizes every ERI named exactly `v` (intermolecular or
+  monomer-only) into two three-index arrays (`v_abrs` → `Qar, Qbs`), one auxiliary index per
+  ERI; no other tensor is touched, including spin blocks `v_ab`.
   → `docs/notes/density-fitting.md`
+  Array names come from one function, `_array_names`: `symbol_<space letters>`, plus one spin
+  letter per axis for a spin-tagged tensor (`t_rraa_abab`, density-fitting factors `Qar_aa`),
+  plus the renames (`v_A` → `vA`). A tensor with both tagged and untagged indices raises.
+  `array_table(expr, density_fitting=…)` describes every array under exactly those names.
 - `utils.py` — `format_expr` (LaTeX align formatting), `timeit` decorator.
 
 ## Conventions

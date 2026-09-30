@@ -1,3 +1,5 @@
+from collections import Counter
+
 from sympy.physics.secondquant import (
     AnnihilateFermion,
     CreateFermion,
@@ -17,6 +19,11 @@ from sympy import (
 )
 from sympy import expand as sy_expand
 from sympy.core.traversal import preorder_traversal
+
+from sym2quantized_sapt.open_shell import (
+    opposite_spins,
+    shared_spin_tag,
+)
 
 from .operators import (
     AnnihilateFermion_A,
@@ -80,9 +87,16 @@ def contraction_double_vac(X, Y):
     """
     Calculates contraction for operators corresponding
     to either molecule A or molecule B.
+
+    Indices tagged with opposite spins (``is_alpha`` / ``is_beta``)
+    never contract; untagged indices contract with anything, as
+    before.
     """
 
     if isinstance(X, DoubleFermiVaccum) and isinstance(Y, DoubleFermiVaccum):
+        if opposite_spins(X.state, Y.state):
+            return S.Zero
+
         if isinstance(X, AnnihilateFermion_A) and isinstance(
             Y, CreateFermion_A
         ):
@@ -96,7 +110,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("a", is_molA=True, above_fermi=True)
+                Y.state,
+                Dummy(
+                    "a",
+                    is_molA=True,
+                    above_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, CreateFermion_A) and isinstance(
@@ -112,7 +132,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("i", is_molA=True, below_fermi=True)
+                Y.state,
+                Dummy(
+                    "i",
+                    is_molA=True,
+                    below_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, AnnihilateFermion_B) and isinstance(
@@ -128,7 +154,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("b", is_molB=True, above_fermi=True)
+                Y.state,
+                Dummy(
+                    "b",
+                    is_molB=True,
+                    above_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         if isinstance(X, CreateFermion_B) and isinstance(
@@ -144,7 +176,13 @@ def contraction_double_vac(X, Y):
                 return KroneckerDelta(X.state, Y.state)
 
             return KroneckerDelta(X.state, Y.state) * KroneckerDelta(
-                Y.state, Dummy("j", is_molB=True, below_fermi=True)
+                Y.state,
+                Dummy(
+                    "j",
+                    is_molB=True,
+                    below_fermi=True,
+                    **shared_spin_tag(X.state, Y.state),
+                ),
             )
 
         else:
@@ -152,6 +190,35 @@ def contraction_double_vac(X, Y):
 
     else:
         return contraction(X, Y)
+
+
+def _merge_delta_indices(expr, survivor, killed, indicies):
+    """
+    Replaces ``killed`` with ``survivor`` in ``expr``, keeping the spin tag.
+
+    The survivor of a delta is chosen by fermi level information only.
+    If ``killed`` carries a spin tag the survivor lacks, both are replaced
+    with a copy of the survivor that carries it; otherwise the term would
+    sum over both spins. Returns None when that copy is not allowed (the
+    survivor is free and renaming it would change the result); the delta
+    must then stay unevaluated.
+
+    Helper function.
+    """
+    tag = shared_spin_tag(survivor, killed)
+    survivor_tagged = survivor.assumptions0.get(
+        "is_alpha"
+    ) or survivor.assumptions0.get("is_beta")
+
+    if not tag or survivor_tagged:
+        return expr.subs(killed, survivor)
+
+    if not (isinstance(survivor, Dummy) and indicies[survivor]):
+        return None
+
+    tagged = Dummy(survivor.name, **{**survivor.assumptions0, **tag})
+
+    return expr.subs({killed: tagged, survivor: tagged})
 
 
 def evaluate_deltas_double_vac(expr):
@@ -163,6 +230,9 @@ def evaluate_deltas_double_vac(expr):
     in KronecerDelta should have an assumptions:
     - is_molA=True if this index applies only to part A of the complex,
     - is_molB=True if this index applies only to part B of the complex.
+
+    A delta between indices tagged with opposite spins (``is_alpha`` /
+    ``is_beta``) is zero, as is a cross-monomer one.
     """
 
     if isinstance(expr, Add):
@@ -181,6 +251,10 @@ def evaluate_deltas_double_vac(expr):
                 deltas.append(elem)
 
         for d in deltas:
+            # Indicies tagged with opposite spins. Delta is zero.
+            if opposite_spins(d.killable_index, d.preferred_index):
+                return S.Zero
+
             # Now we have to check if killable and preferred apply
             # to the same part of the complex.
             killable_molA = d.killable_index.assumptions0.get("is_molA")
@@ -195,7 +269,12 @@ def evaluate_deltas_double_vac(expr):
                     # Method killabel_index returns index containing less information
                     # regarding fermi level. If both contain the same amount of information
                     # alphabetical order is used to determine wich is preferred.
-                    expr = expr.subs(d.killable_index, d.preferred_index)
+                    merged = _merge_delta_indices(
+                        expr, d.preferred_index, d.killable_index, indicies
+                    )
+                    if merged is None:
+                        continue
+                    expr = merged
                     if len(deltas) > 1:
                         return evaluate_deltas_double_vac(expr)
 
@@ -206,7 +285,12 @@ def evaluate_deltas_double_vac(expr):
                 ):
                     # Here we have situation where the preferred_index appers somewhere
                     # else in the expression. We can change
-                    expr = expr.subs(d.preferred_index, d.killable_index)
+                    merged = _merge_delta_indices(
+                        expr, d.killable_index, d.preferred_index, indicies
+                    )
+                    if merged is None:
+                        continue
+                    expr = merged
                     if len(deltas) > 1:
                         return evaluate_deltas_double_vac(expr)
 
@@ -536,6 +620,65 @@ def _get_ordered_dummies_double_vac(term: Expr):
     return ordered
 
 
+#: naming keys of `substitute_dummies_double_vac`, in the order its
+#: renaming pools are named
+_INDEX_KINDS = (
+    "above_molA",
+    "below_molA",
+    "general_molA",
+    "above_molB",
+    "below_molB",
+    "general_molB",
+)
+
+
+def _index_kind(assumptions):
+    """
+    The naming key ("above_molA", ..., "general_molB") of an index with
+    these assumptions, or None when it carries no monomer assumption and
+    is not renamed.
+
+    Helper function.
+    """
+    if assumptions.get("is_molA"):
+        monomer = "molA"
+    elif assumptions.get("is_molB"):
+        monomer = "molB"
+    else:
+        return None
+
+    if assumptions.get("above_fermi"):
+        return f"above_{monomer}"
+    if assumptions.get("below_fermi"):
+        return f"below_{monomer}"
+    return f"general_{monomer}"
+
+
+def _spin_rank(assumptions):
+    """
+    Untagged, alpha, beta: the order in which the renaming pools of one
+    kind are named.
+
+    Helper function.
+    """
+    if assumptions.get("is_alpha"):
+        return 1
+    if assumptions.get("is_beta"):
+        return 2
+    return 0
+
+
+def _index_class(index):
+    """
+    Everything an index is renamed by: two indices may only be renamed
+    onto each other when all their assumptions agree (same monomer, Fermi
+    level and spin), i.e. when they run over the same orbitals.
+
+    Helper function.
+    """
+    return tuple(sorted(index.assumptions0.items()))
+
+
 def substitute_dummies_double_vac(expr, pretty_indices=None):
     """
     Substiutute Dummy indicies systematicaly across the expresion
@@ -548,6 +691,14 @@ def substitute_dummies_double_vac(expr, pretty_indices=None):
     j, j_1, j_2, ... - hole indicies of molecule B,
     p, p_1, p_2, ... - general idnicies of molecule A,
     q, q_1, q_2, ... - general idnicies of molecule B.
+
+    Spin-tagged indices (``is_alpha`` / ``is_beta``) are renamed within
+    their spin only: an alpha index never becomes a beta one. The spins of
+    one kind share the name counter, untagged first, then alpha, then
+    beta (alpha holes i, i_1, beta holes i_2, i_3), so that no two indices
+    share a name: `code_generator.generate_einsum` identifies indices by
+    name. A beta index is printed with a bar (\\bar{i}_2) in LaTeX only;
+    see `open_shell.index_latex`.
 
     NOTE: pretty_indices is NOT compatible with code generation!
     `code_generator.generate_einsum` renames the canonical names to the
@@ -571,14 +722,6 @@ def substitute_dummies_double_vac(expr, pretty_indices=None):
     }
     """
 
-    molA_aboves = []
-    molA_belows = []
-    molA_generals = []
-
-    molB_aboves = []
-    molB_belows = []
-    molB_generals = []
-
     # default names
     names = {
         "above_molA": "a",
@@ -593,94 +736,58 @@ def substitute_dummies_double_vac(expr, pretty_indices=None):
     if pretty_indices is not None:
         names.update(pretty_indices)
 
-    dummies = expr.atoms(Dummy)
-    a = b = i = j = p = q = 0
-    for elem in dummies:
-        assum = elem.assumptions0
-
-        if assum.get("is_molA"):
-            if assum.get("above_fermi"):
-                if a == 0:
-                    index = Dummy(names["above_molA"], **assum)
-                else:
-                    index = Dummy(names["above_molA"] + f"_{a}", **assum)
-                molA_aboves.append(index)
-                a += 1
-
-            elif assum.get("below_fermi"):
-                if i == 0:
-                    index = Dummy(names["below_molA"], **assum)
-                else:
-                    index = Dummy(names["below_molA"] + f"_{i}", **assum)
-                molA_belows.append(index)
-                i += 1
-
-            else:
-                if p == 0:
-                    index = Dummy(names["general_molA"], **assum)
-                else:
-                    index = Dummy(names["general_molA"] + f"_{p}", **assum)
-                molA_generals.append(index)
-                p += 1
-
-        if assum.get("is_molB"):
-            if assum.get("above_fermi"):
-                if b == 0:
-                    index = Dummy(names["above_molB"], **assum)
-                else:
-                    index = Dummy(names["above_molB"] + f"_{b}", **assum)
-                molB_aboves.append(index)
-                b += 1
-
-            elif assum.get("below_fermi"):
-                if j == 0:
-                    index = Dummy(names["below_molB"], **assum)
-                else:
-                    index = Dummy(names["below_molB"] + f"_{j}", **assum)
-                molB_belows.append(index)
-                j += 1
-
-            else:
-                if q == 0:
-                    index = Dummy(names["general_molB"], **assum)
-                else:
-                    index = Dummy(names["general_molB"] + f"_{q}", **assum)
-                molB_generals.append(index)
-                q += 1
-
     expr = expr.expand()
     terms = Add.make_args(expr)
+
+    # One pool of new indices per index class, as large as the most
+    # indices of that class in a single term.
+    pool_sizes = {}
+    for term in terms:
+        in_term = Counter(
+            _index_class(d)
+            for d in term.atoms(Dummy)
+            if _index_kind(d.assumptions0)
+        )
+        for index_class, count in in_term.items():
+            pool_sizes[index_class] = max(
+                pool_sizes.get(index_class, 0), count
+            )
+
+    def _naming_order(index_class):
+        assumptions = dict(index_class)
+        kind = _index_kind(assumptions)
+        return (_INDEX_KINDS.index(kind), _spin_rank(assumptions), index_class)
+
+    # The classes of one kind share its name counter, so an alpha and a
+    # beta index are never given the same name.
+    pools = {}
+    counters = dict.fromkeys(_INDEX_KINDS, 0)
+    for index_class in sorted(pool_sizes, key=_naming_order):
+        assumptions = dict(index_class)
+        kind = _index_kind(assumptions)
+
+        pool = []
+        for _ in range(pool_sizes[index_class]):
+            if counters[kind] == 0:
+                name = names[kind]
+            else:
+                name = names[kind] + f"_{counters[kind]}"
+            pool.append(Dummy(name, **assumptions))
+            counters[kind] += 1
+
+        pools[index_class] = pool
+
     new_terms = []
     for term in terms:
         ordered = _get_ordered_dummies_double_vac(term)
-
-        a = iter(molA_aboves)
-        i = iter(molA_belows)
-        p = iter(molA_generals)
-
-        b = iter(molB_aboves)
-        j = iter(molB_belows)
-        q = iter(molB_generals)
+        available = {
+            index_class: iter(pool) for index_class, pool in pools.items()
+        }
 
         subsdict = {}
         for d in ordered:
-            assum = d.assumptions0
-
-            if assum.get("is_molA"):
-                if assum.get("above_fermi"):
-                    subsdict[d] = next(a)
-                elif assum.get("below_fermi"):
-                    subsdict[d] = next(i)
-                else:
-                    subsdict[d] = next(p)
-
-            if assum.get("is_molB"):
-                if assum.get("above_fermi"):
-                    subsdict[d] = next(b)
-                elif assum.get("below_fermi"):
-                    subsdict[d] = next(j)
-                else:
-                    subsdict[d] = next(q)
+            if _index_kind(d.assumptions0):
+                subsdict[d] = next(available[_index_class(d)])
 
         subslist = []
         final_subs = []

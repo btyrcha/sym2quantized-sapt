@@ -284,6 +284,7 @@ def get_R_nm(n: int, m: int, operator: Expr) -> Expr:
         hole_indicies_A + hole_indicies_B,
         particle_indicies_A + particle_indicies_B,
         e_symmetries,
+        is_graph_vertex=False,
     )
 
     expr = coeff * tensors * Dagger(a_part) * Dagger(b_part) * denom

@@ -117,3 +117,17 @@ def test_R_20_denominator_carries_the_full_permutation_symmetry():
     for upper, lower in symmetries:
         assert set(upper) == {0, 1}
         assert set(lower) == {0, 1}
+
+
+def test_R_nm_denominator_is_not_a_graph_vertex():
+    """
+    `e` is built with is_graph_vertex=False, and the flag survives the
+    dummy substitution `get_R_nm` runs on its result. Its slot pairing is
+    arbitrary under its symmetries, so tracing it as a vertex would merge
+    loops.
+    """
+    result = get_R_nm(1, 0, get_V_operator())
+
+    for term in Add.make_args(result):
+        for tensor in _tensors_of(term):
+            assert tensor.is_graph_vertex == (str(tensor.symbol) != "e")

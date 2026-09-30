@@ -3,6 +3,12 @@ import re
 from sympy import Add, Mul, Expr, expand
 from sympy.physics.secondquant import TensorSymbol
 
+from sym2quantized_sapt.open_shell import index_spin
+from sym2quantized_sapt.spin_integrator.uhf import (
+    BLOCK_SEPARATOR,
+    _split_block,
+)
+
 
 def _psi4numpy_indices(index: str) -> str:
     """
@@ -159,10 +165,6 @@ def _get_code_str(
     indices = _assign_auxiliary_names(indices)
 
     variables = ", ".join(variables)
-    variables = variables.replace("v_A", "vA")
-    variables = variables.replace("v_B", "vB")
-    variables = variables.replace("o_A", "omegaA")
-    variables = variables.replace("o_B", "omegaB")
 
     code_str = 'np.einsum("{0}", {1})'.format(indices, variables)
 
@@ -186,9 +188,12 @@ def _get_code_str(
 
 def _is_eri(tensor: TensorSymbol) -> bool:
     """
-    `v` is the intermolecular two-electron integral, the only tensor the
-    density-fitting split applies to. The monomer potentials print as `v_A`
-    and `v_B` and are left alone, as are `s`, `e` and every amplitude.
+    `v` is the two-electron integral, intermolecular or monomer-only, and the
+    only tensor the density-fitting split applies to. The match is on the
+    exact name: the monomer potentials print as `v_A` and `v_B` and are left
+    alone, as are `s`, `e`, every amplitude and the spin blocks `v_ab`, ...
+    that `spin_integration_uhf` produces. A spin-tagged `v` is factorized
+    too; its factors carry the spins of their slot pairs (`Qar_aa`).
     """
     return str(tensor.symbol) == "v"
 
@@ -214,10 +219,11 @@ def _check_eri_indices(tensor: TensorSymbol) -> None:
     `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, so the split pairs slot 0 of the lower
     indices with slot 0 of the upper ones, and likewise for slot 1. That is
     the right factorization only for a `v` carrying two upper and two lower
-    indices ordered monomer A first - the order `get_V_operator` builds. A
-    `v` ordered any other way denotes a different integral, and pairing it
-    positionally would silently hand back three-index arrays straddling both
-    monomers.
+    indices whose slot pairs each sit on one monomer: the intermolecular `v`
+    `get_V_operator` builds (pair 0 on A, pair 1 on B) or a monomer-only `v`
+    (both pairs on the same monomer). A `v` whose pair straddles A and B
+    denotes a different integral, and pairing it positionally would silently
+    hand back three-index arrays straddling both monomers.
 
     Indices without a monomer assumption are not second-guessed: a plain
     ERI keeps the positional pairing.
@@ -262,8 +268,12 @@ def _variable_name(tensor: TensorSymbol, density_fitting: bool = False):
 
     Under `density_fitting` an ERI is never stored as a four-index array:
     `v^{a b}_{i j}` becomes the pair of three-index arrays `Qar`, `Qbs`, one
-    per monomer. Hence the tuple return - every other tensor yields a
-    one-element tuple.
+    per slot pair - one per monomer for the intermolecular ERI, both on the
+    same monomer for a monomer-only one. Hence the tuple return - every
+    other tensor yields a one-element tuple.
+
+    These are the spin-free names; `_array_names` adds the spins of a
+    tagged tensor and the renames, and is what the generated code uses.
     """
     if density_fitting and _is_eri(tensor):
         _check_eri_indices(tensor)
@@ -281,6 +291,74 @@ def _variable_name(tensor: TensorSymbol, density_fitting: bool = False):
         )
 
     return ("_".join((str(tensor.symbol), "".join(var_indices))),)
+
+
+#: renames applied to every array name, e.g. the monomer potential `v_A`
+#: is held in `vA`
+_ARRAY_RENAMES = (
+    ("v_A", "vA"),
+    ("v_B", "vB"),
+    ("o_A", "omegaA"),
+    ("o_B", "omegaB"),
+)
+
+
+def _axis_spins(tensor: TensorSymbol) -> str:
+    """
+    One spin letter per axis of `tensor`, lower indices first (the order of
+    `_variable_name`), read off the spin tags; `""` for an untagged tensor.
+
+    A tensor with both tagged and untagged indices is rejected: under an
+    unrestricted reference an untagged axis has no single orbital range, so
+    it cannot become one array axis.
+    """
+    spins = [index_spin(idx) for idx in (*tensor.lower, *tensor.upper)]
+
+    if not any(spins):
+        return ""
+
+    if not all(spins):
+        raise ValueError(
+            f"Code generator: tensor {str(tensor)} has both spin-tagged and "
+            f"untagged indices; every axis of an array needs one spin."
+        )
+
+    return "".join(spins)
+
+
+def _array_names(tensor: TensorSymbol, density_fitting: bool = False):
+    """
+    The names of the numpy arrays holding `tensor`, exactly as the generated
+    code spells them: the one source of array names for `generate_einsum`
+    and `array_table`, so the two cannot drift apart.
+
+    `_variable_name` gives the spin-free name. A spin-tagged tensor then
+    gets one spin letter per axis appended, in the same order as the index
+    letters (`t_rraa_abab`), and a density-fitting factor the spins of its
+    slot pair (`Qar_aa`); on the spin-tag route the spin sits in the tags,
+    so a plainly named `t` is enough to keep alpha and beta arrays apart.
+    Untagged tensors keep their spin-free names. Last come the
+    `_ARRAY_RENAMES`.
+    """
+    names = _variable_name(tensor, density_fitting=density_fitting)
+    spins = _axis_spins(tensor)
+
+    if spins and len(names) == 2:
+        # density fitting pairs lower slot k with upper slot k
+        names = (
+            f"{names[0]}_{spins[0]}{spins[2]}",
+            f"{names[1]}_{spins[1]}{spins[3]}",
+        )
+    elif spins:
+        names = (f"{names[0]}_{spins}",)
+
+    renamed = []
+    for name in names:
+        for old, new in _ARRAY_RENAMES:
+            name = name.replace(old, new)
+        renamed.append(name)
+
+    return tuple(renamed)
 
 
 def _expand_tensor(
@@ -304,7 +382,7 @@ def _expand_tensor(
         _psi4numpy_indices(idx.name) for idx in (*tensor.lower, *tensor.upper)
     ]
 
-    variables = _variable_name(tensor, density_fitting=density_fitting)
+    variables = _array_names(tensor, density_fitting=density_fitting)
 
     if len(variables) == 2:
         indices = [
@@ -411,13 +489,20 @@ def generate_einsum(
         pretty_indices (bool): name the indices after the fixed table in
             `_pretty_indices_names` instead of renaming every subscripted
             index to an unused letter
-        density_fitting (bool): factorize every intermolecular two-electron
-            integral `v^{p r}_{q s} = (p q | r s)` into
-            `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the two three-index
-            arrays `Qqp`, `Qsr` instead of the four-index `v_qspr`. Each ERI
-            of a term is given an auxiliary index of its own. No other
-            tensor is touched - `(v_A)`, `(v_B)`, `s`, `e` and the
-            amplitudes are emitted as usual.
+        density_fitting (bool): factorize every two-electron integral
+            `v^{p r}_{q s} = (p q | r s)`, intermolecular or monomer-only,
+            into `sum_Q B^{Q}_{q p} B^{Q}_{s r}`, emitting the two
+            three-index arrays `Qqp`, `Qsr` instead of the four-index
+            `v_qspr`. Each ERI of a term is given an auxiliary index of its
+            own. No other tensor is touched - `(v_A)`, `(v_B)`, `s`, `e`,
+            the amplitudes and spin-blocked `v_ab`, ... are emitted as
+            usual.
+
+    Array names are the tensor name plus one letter per index space
+    (`t_rraa`). A spin-tagged tensor also gets one spin letter per axis
+    (`t_rraa_abab`), so on the spin-tag route a plainly named tensor gives
+    distinct arrays for its spin sectors. `array_table` describes every
+    array under exactly these names.
 
     Returns:
         str: string with numpy code
@@ -426,7 +511,8 @@ def generate_einsum(
         IndexError: the expression has more indices than there are names,
             more ERIs than there are auxiliary indices, or a `v` that
             `density_fitting` cannot factorize
-        ValueError: `pretty_indices` is set and an index is outside the table
+        ValueError: `pretty_indices` is set and an index is outside the
+            table, or a tensor has both spin-tagged and untagged indices
     """
 
     expr = expand(expr)
@@ -459,3 +545,130 @@ def generate_einsum(
 
     # expr is neither Mul, Add nor TensorSymbol:
     return ""
+
+
+#: the auxiliary axis of a density-fitting factor in `array_table`
+_AUX_AXIS = {"role": "aux", "space": "aux", "monomer": "", "spin": ""}
+
+
+def array_table(expr: Expr, density_fitting: bool = False) -> dict:
+    """Define every array :func:`generate_einsum` emits for ``expr``.
+
+    The generated code references arrays by name only; this returns
+    what each name *is*, axis by axis, so numeric code can build them.
+    The keys are exactly the array names of
+    ``generate_einsum(expr, density_fitting=density_fitting)``: both take
+    them from ``_array_names``, renames (``vA``) and density-fitting
+    factors included, and both expand ``expr`` first.
+
+    Returns ``{array_name: {"base": ..., "spin_block": ..., "axes":
+    [...]}}`` with one axes entry per array dimension, in the array's
+    storage order (lower indices first, then upper, matching
+    :func:`generate_einsum`): ``{"role": "l"/"u", "space": "o"/"v"/"g",
+    "monomer": "A"/"B"/"", "spin": "a"/"b"/""}``.
+
+    - A spin-tagged tensor (the spin-tag route) takes every axis spin from
+      its tags. ``base`` is the tensor symbol, not parsed, and
+      ``spin_block`` the spin letters appended to its array name.
+    - An untagged tensor is read as the frozen per-loop route
+      (:func:`spin_integrator.uhf.spin_integration_uhf`) names its blocks:
+      ``base`` is the symbol without the block label and ``spin_block``
+      the label. The spin of an axis is the label of its slot pair --
+      pair ``k`` couples lower axis ``k`` with upper axis ``k``, one
+      particle/hole line through the tensor. A tensor that is not a graph
+      vertex (the resolvent denominator) has no lines through it and is
+      labelled per index instead: ``e_ab_ba`` gives upper axes spins
+      ``a, b`` and lower axes ``b, a``, with ``spin_block`` ``"ab_ba"``.
+      Without a block label every spin is ``""``.
+    - Under ``density_fitting`` an ERI is described as its two factors,
+      axes ``[aux, lower k, upper k]`` for factor ``k``; the auxiliary axis
+      is ``{"role": "aux", "space": "aux", "monomer": "", "spin": ""}``.
+
+    Raises ``ValueError`` for a tensor with both spin-tagged and untagged
+    indices, as :func:`generate_einsum` does, and if one name would need
+    two different definitions (it cannot happen for expressions produced
+    by this package's pipeline; a hand-built collision should fail
+    loudly).
+    """
+
+    def _axis(role, index, spin):
+        assumptions = index.assumptions0
+
+        if assumptions.get("below_fermi"):
+            space = "o"
+        elif assumptions.get("above_fermi"):
+            space = "v"
+        else:
+            space = "g"
+
+        return {
+            "role": role,
+            "space": space,
+            "monomer": _monomer_of(index),
+            "spin": spin,
+        }
+
+    def _spins_and_labels(tensor):
+        """(base, spin_block, one spin per axis in storage order)"""
+        symbol = str(tensor.symbol)
+        spins = _axis_spins(tensor)
+
+        if spins:
+            return symbol, spins, list(spins)
+
+        split = _split_block(tensor)
+        if split is None:
+            n_axes = len(tensor.lower) + len(tensor.upper)
+            return symbol, "", [""] * n_axes
+
+        base, upper_spins, lower_spins = split
+        suffix = symbol[len(base) + len(BLOCK_SEPARATOR) :]
+        return base, suffix, list(lower_spins) + list(upper_spins)
+
+    table = {}
+
+    def _define(name, definition):
+        if name in table and table[name] != definition:
+            raise ValueError(
+                f"array {name} would need two definitions:\n"
+                f"  {table[name]}\n  {definition}"
+            )
+
+        table[name] = definition
+
+    for term in Add.make_args(expand(expr)):
+        for tensor in Mul.make_args(term):
+            if not isinstance(tensor, TensorSymbol):
+                continue
+
+            names = _array_names(tensor, density_fitting=density_fitting)
+            base, spin_block, spins = _spins_and_labels(tensor)
+            lower, upper = list(tensor.lower), list(tensor.upper)
+
+            roles = ["l"] * len(lower) + ["u"] * len(upper)
+            axes = [
+                _axis(role, index, spin)
+                for role, index, spin in zip(roles, lower + upper, spins)
+            ]
+
+            if len(names) == 1:
+                definition = {
+                    "base": base,
+                    "spin_block": spin_block,
+                    "axes": axes,
+                }
+                _define(names[0], definition)
+                continue
+
+            # density fitting: factor k holds the auxiliary index and the
+            # slot pair (lower k, upper k)
+            for k, name in enumerate(names):
+                pair = [axes[k], axes[len(lower) + k]]
+                definition = {
+                    "base": base,
+                    "spin_block": "".join(axis["spin"] for axis in pair),
+                    "axes": [dict(_AUX_AXIS), *pair],
+                }
+                _define(name, definition)
+
+    return table

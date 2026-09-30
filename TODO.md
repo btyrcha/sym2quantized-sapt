@@ -23,6 +23,3 @@ Goals and future ideas for the repo.
   Template in `tests/test_double_fermi_vac.py`.
   → [`docs/notes/dummy-ordering.md`](docs/notes/dummy-ordering.md)
 
-## Features
-
-- **UHF spin summation.** Add spin summation rules for a UHF reference.
